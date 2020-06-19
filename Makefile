@@ -39,7 +39,7 @@ LDFLAGS = -lpetsc -lm ${BRAID_LIB_FILE} -L${PETSC_DIR}/${PETSC_ARCH}/lib -lblas 
 
 # Set compiler and flags 
 CXX=mpicxx
-CXXFLAGS= -g -std=c++11 -lstdc++ $(CXX_OPT)
+CXXFLAGS= -O3 -std=c++11 -lstdc++ $(CXX_OPT)
 
 
 # Rule for linking main
