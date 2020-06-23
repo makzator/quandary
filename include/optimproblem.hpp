@@ -5,10 +5,6 @@
 
 #pragma once
 
-enum ObjectiveType {GATE,             // Compare final state to linear gate transformation of initial cond.
-                    EXPECTEDENERGY,   // Minimizes expected energy levels.
-                    GROUNDSTATE};     // Compares final state to groundstate (full matrix)
-
 
 
 class OptimProblem {
@@ -40,10 +36,13 @@ class OptimProblem {
   Gate  *targetgate;               /* Target gate */
   int ndesign;                     /* Number of global design parameters */
   double objective;                /* Holds current objective function value */
-  double obj_cost;                 /* Regularization term in objective */
-  double obj_regul;                /* Cost function term in objective */
+  double obj_cost;                 /* Cost function term in objective */
+  double obj_regul;                /* Regularization term in objective */
+  double obj_penal;                /* Penalty term in objective */
   double gnorm;                    /* Holds current norm of gradient */
   double gamma_tik;                /* Parameter for tikhonov regularization */
+  double penalty_coeff;            /* Parameter multiplying integral penalty term */
+  double penalty_exp;              /* Exponent inside integral penalty term (p) */
   double gatol;                    /* Stopping criterion based on absolute gradient norm */
   double grtol;                    /* Stopping criterion based on relative gradient norm */
   int maxiter;                     /* Stopping criterion based on maximum number of iterations */
@@ -73,13 +72,10 @@ class OptimProblem {
   /* Compute initial guess for optimization variables */
   void getStartingPoint(Vec x);
 
-  /* Compute final-time part of the objective */
-  double objectiveT(Vec finalstate);
-  /* Derivative of final-time part of objective times obj_bar */
-  void objectiveT_diff(Vec finalstate, const double obj_local, const double obj_bar);
-
   /* Call this after TaoSolve() has finished to print out some information */
   void getSolution(Vec* opt);
+
+  static void integral_penalty();
 };
 
 /* Monitor the optimization progress. This routine is called in each iteration of TaoSolve() */
@@ -93,3 +89,10 @@ PetscErrorCode TaoEvalGradient(Tao tao, Vec x, Vec G, void*ptr);
 
 /* Petsc's Tao interface routine for evaluating the gradient g = \nabla f(x) */
 PetscErrorCode TaoEvalObjectiveAndGradient(Tao tao, Vec x, PetscReal *f, Vec G, void*ptr);
+
+
+/* Compute local objective function J(rho(t)) */
+double objectiveT(MasterEq* mastereq, ObjectiveType objective_type, const std::vector<int>& obj_oscilIDs, const Vec state, const Vec rho_t0, Gate* targetgate);
+
+/* Derivative of local objective function times obj_bar */
+void objectiveT_diff(MasterEq* mastereq, ObjectiveType objective_type, const std::vector<int>& obj_oscilIDs, Vec state, Vec state_bar, const Vec rho_t0, const double obj_bar, Gate* targetgate);
