@@ -1,15 +1,13 @@
+#include "defs.hpp"
 #include "oscillator.hpp"
 #include "util.hpp"
 #include <petscts.h>
 #include <vector>
 #include <assert.h>
 #include <iostream> 
+#include "gate.hpp"
 #pragma once
 
-/* Available lindblad types */
-enum LindbladType {NONE, DECAY, DEPHASE, BOTH};
-/* Available types of initial conditions */
-enum InitialConditionType {FROMFILE, PURE, DIAGONAL, BASIS};
 
 /* Define a matshell context containing pointers to data needed for applying the RHS matrix to a vector */
 typedef struct {
@@ -118,6 +116,7 @@ class MasterEq{
      *       rho0 -- Vector for setting initial condition 
      */
     int getRhoT0(const int iinit, const int ninit, const InitialConditionType initcond_type, const std::vector<int>& oscilIDs, Vec rho0);
+
 };
 
 
