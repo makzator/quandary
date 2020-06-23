@@ -2,7 +2,7 @@
 PETSC_DIR = /usr/tce/packages/petsc/petsc-3.12.4-mvapich2-2.3-gcc-4.8-redhat
 
 # Set Braid location 
-BRAID_DIR = ${HOME}/Numerics/xbraid_solveadjointwithxbraid
+BRAID_DIR = ${HOME}/xbraid
 
 # Set compiler options, e.g. define SANITY_CHECK. Comment out if none.
 #CXX_OPT = -DSANITY_CHECK
