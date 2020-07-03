@@ -10,8 +10,8 @@
 #pragma once
 
 // define as extern here, they are needed for penalty integral term, implemented in optimproble.cpp
-extern double objectiveT(MasterEq* mastereq, ObjectiveType objective_type, const std::vector<int>& obj_oscilIDs, const Vec state, const Vec rho_t0, Gate* targetgate);
-extern void objectiveT_diff(MasterEq* mastereq, ObjectiveType objective_type, const std::vector<int>& obj_oscilIDs, Vec state, Vec state_bar, const Vec rho_t0, const double obj_bar, Gate* targetgate);
+extern double objectiveT(MasterEq* mastereq, ObjectiveType objective_type, const std::vector<int>& obj_oscilIDs, const std::vector<double>& obj_weights, const Vec state, const Vec rho_t0, Gate* targetgate);
+extern void objectiveT_diff(MasterEq* mastereq, ObjectiveType objective_type, const std::vector<int>& obj_oscilIDs, const std::vector<double>& obj_weights, Vec state, Vec state_bar, const Vec rho_t0, const double obj_bar, Gate* targetgate);
 
 class myBraidVector {
   public: 
@@ -34,6 +34,7 @@ class myBraidApp : public BraidApp {
     std::vector<FILE *>expectedfile;
     std::vector<FILE *>populationfile;
     std::vector<std::vector<std::string> > outputstr; // List of outputs for each oscillator
+    bool writefullstate;
 
     /* MPI stuff */
     bool usepetscts;
@@ -56,6 +57,7 @@ class myBraidApp : public BraidApp {
     /* Stuff for evaluating penalty term objective function */
     ObjectiveType objective_type;
     std::vector<int> obj_oscilIDs;
+    std::vector<double> obj_weights;
     double Jbar;
     double penalty_exp;
     double penalty_coeff;
@@ -116,7 +118,7 @@ class myBraidApp : public BraidApp {
                                 BraidBufferStatus &bstatus);
 
     /* Pass initial condition to braid, open output files*/
-    virtual void PreProcess(int iinit, const Vec rho_t0, double Jbar);
+    virtual void PreProcess(int iinit, const Vec rho_t0, double Jbar, bool output);
 
     /* Performs one last FRelax. Returns state at last time step or NULL if not stored on this processor */
     virtual Vec PostProcess();
@@ -159,7 +161,7 @@ class myAdjointBraidApp : public myBraidApp {
     braid_Int Init(braid_Real t, braid_Vector *u_ptr);
 
     /* Pass initial condition to braid, reset gradient, open output files */
-    virtual void PreProcess(int iinit, const Vec rho_t0, double Jbar);
+    virtual void PreProcess(int iinit, const Vec rho_t0, double Jbar, bool output);
 
     /* Performs one last FRelax and MPI_Allreduce the gradient. */
     Vec PostProcess();
