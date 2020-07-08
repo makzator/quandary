@@ -13,13 +13,20 @@ This project relies on the Petsc package [https://www.mcs.anl.gov/petsc/] to han
     * Compile petsc with `make all test`
     * Append Petsc directory to the `LD_LIBRARY_PATH`:
         `export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PETSC_DIR/$PETSC_ARCH`
-
+* Optional: Install Slepc for eigenvalue problem analysis
+    * Download slepc package from [https://slepc.upv.es/download/]
+    * Set `SLEPC_DIR` variable:
+        `export SLEPC_DIR=/home/username/path/to/petsc-3.13.<version>`
+    * `cd $SLEPC_DIR
+    * `./configure`
+    * `make`
+    * `make check`
 * Optional: Install XBraid, using the branch 'solveadjointwithxbraid': 
     - git clone https://github.com/XBraid/xbraid.git
     - cd xbraid
     - git checkout solveadjointwithxbraid
     - make braid
-* In the main directory of this project, adapt the beginning of the Makefile to set the path to Petsc, and possibly to XBraid
+* In the main directory of this project, adapt the beginning of the Makefile to set the path to Petsc, and possibly to Slepc and XBraid
 * Type `make cleanup` to clean the build directory.
 * Type `make -j main` to build the code. 
 

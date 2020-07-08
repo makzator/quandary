@@ -10,6 +10,9 @@
 #include <sys/resource.h>
 #include "optimproblem.hpp"
 #include "output.hpp"
+#ifdef WITH_SLEPC
+#include <slepceps.h>
+#endif
 
 #define TEST_FD 0    // Finite Differences gradient test
 #define EPS 1e-4     // Epsilon for Finite Differences
@@ -142,9 +145,13 @@ int main(int argc,char **argv)
 #endif
   std::cout<< std::endl;
 
-  /* Initialize Petsc using petsc's communicator */
+  /* Initialize Slepc and Petsc using petsc's communicator */
   PETSC_COMM_WORLD = comm_petsc;
+#ifdef WITH_SLEPC
+  ierr = SlepcInitialize(&argc, &argv, (char*)0, NULL);if (ierr) return ierr;
+#else
   ierr = PetscInitialize(&argc,&argv,(char*)0,NULL);if (ierr) return ierr;
+#endif
   PetscViewerPushFormat(PETSC_VIEWER_STDOUT_WORLD, 	PETSC_VIEWER_ASCII_MATLAB );
 
 
@@ -406,8 +413,12 @@ int main(int argc,char **argv)
 
   // TSDestroy(&ts);  /* TODO */
 
-  /* Finallize Petsc */
+  /* Finallize Slepc and Petsc */
+#ifdef WITH_SLEPC
+  ierr = SlepcFinalize();
+#else
   ierr = PetscFinalize();
+#endif
 
   MPI_Finalize();
   return ierr;

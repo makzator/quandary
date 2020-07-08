@@ -2,32 +2,45 @@
 #PETSC_DIR=/usr/workspace/wsa/wave/petsc-3.13
 #PETSC_ARCH=arch-linux-c-debug
 
+# Set location of SLEPC
+SLEPC_DIR=${HOME}/Software/slepc-3.13.3
+
 # Set Braid location, or comment out
-BRAID_DIR = ${HOME}/Numerics/xbraid_solveadjointwithxbraid
+#BRAID_DIR = ${HOME}/Numerics/xbraid_solveadjointwithxbraid
 
 # Choose to run sanity tests
 SANITY_CHECK = false
 
 #######################################################
 # Typically no need to change anything below
+#######################################################
 
-# Define Braid include and library location
+# Add optional Slepc
+ifdef SLEPC_DIR
+CXX_OPT = -DWITH_SLEPC
+LDFLAGS_OPT = -L${SLEPC_DIR}/lib -L${SLEPC_DIR}/${PETSC_ARCH}/lib -lslepc 
+INCDIR_OPT = -I${SLEPC_DIR}/${PETSC_ARCH}/include -I${SLEPC_DIR}/include
+endif
+
+# Add optional Braid include and library location
 ifdef BRAID_DIR
 BRAID_INC_DIR = $(BRAID_DIR)/braid
 BRAID_LIB_FILE = $(BRAID_DIR)/braid/libbraid.a
-CXX_OPT = -DWITH_BRAID
+CXX_OPT += -DWITH_BRAID
+LDFLAGS_OPT += ${BRAID_LIB_FILE}
+INCDIR_OPT += -I$(BRAID_INC_DIR) 
 endif
 
-# Add sanity check to compiler option
+# Add optional sanity check
 ifeq ($(SANITY_CHECK), true)
 CXX_OPT += -DSANITY_CHECK
 endif
 
-# Include some petsc libs, these might change depending on the example you run
+# Include some petsc libs (why?)
 include ${PETSC_DIR}/lib/petsc/conf/variables
 include ${PETSC_DIR}/lib/petsc/conf/rules
 include ${PETSC_DIR}/lib/petsc/conf/test
-#
+
 # Set direction of source and header files, and build direction
 SRC_DIR   = src
 INC_DIR   = include
@@ -39,11 +52,11 @@ SRC_FILES += $(wildcard $(SRC_DIR)/*/*.cpp)
 OBJ_FILES  = $(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%.o,$(SRC_FILES))
 
 # set include directory
-INC = -I$(INC_DIR) -I${PETSC_DIR}/include -I${PETSC_DIR}/${PETSC_ARCH}/include -I$(BRAID_INC_DIR) 
+INC = -I$(INC_DIR) -I${PETSC_DIR}/include -I${PETSC_DIR}/${PETSC_ARCH}/include ${INCDIR_OPT} 
 
 # Set Library paths and flags
 LDPATH  = ${PETSC_DIR}/${PETSC_ARCH}/lib
-LDFLAGS = -lpetsc -lm  -L${PETSC_DIR}/${PETSC_ARCH}/lib -lblas -llapack ${BRAID_LIB_FILE}
+LDFLAGS = -lm -lblas -llapack -L${PETSC_DIR}/${PETSC_ARCH}/lib -lpetsc ${LDFLAGS_OPT} 
 
 # Set compiler and flags 
 CXX=mpicxx
