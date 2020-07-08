@@ -57,6 +57,14 @@ MasterEq::MasterEq(std::vector<int> nlevels_, Oscillator** oscil_vec_, const std
     initSparseMatSolver(lindbladtype);
   }
 
+#ifdef WITH_SLEPC
+  /* Create Slepc's eigensolver */
+  EPSCreate(PETSC_COMM_WORLD, &eigensolver);
+  EPSSetOperators(eigensolver, RHS, NULL);
+  EPSSetProblemType(eigensolver, EPS_NHEP);
+  EPSSetFromOptions(eigensolver);
+#endif
+
   /* Create vector strides for accessing Re and Im part in x */
   int ilow, iupp;
   MatGetOwnershipRange(RHS, &ilow, &iupp);
@@ -116,6 +124,9 @@ MasterEq::MasterEq(std::vector<int> nlevels_, Oscillator** oscil_vec_, const std
 MasterEq::~MasterEq(){
   if (dim > 0){
     MatDestroy(&RHS);
+#ifdef WITH_SLEPC
+    EPSDestroy(&eigensolver);
+#endif
     if (!usematfree){
       MatDestroy(&Ad);
       MatDestroy(&Bd);
@@ -140,6 +151,28 @@ MasterEq::~MasterEq(){
   }
 }
 
+void MasterEq::getEigvals(const double t, std::vector<double>& eigvals_Re, std::vector<double>& eigvals_Im){
+
+#ifdef WITH_SLEPC
+  // Assemble M(t)
+  assemble_RHS(t);
+
+  // Solve for eigenvalues 
+  EPSSolve(eigensolver);
+
+  // Get the result
+  int nconv;
+  double kr, ki, error;
+  Vec xr, xi;
+  EPSGetConverged(eigensolver, &nconv );
+  for (int j=0; j<nconv; j++) {
+      EPSGetEigenpair( eigensolver, j, &kr, &ki, xr, xi );
+      EPSComputeError( eigensolver, j, EPS_ERROR_RELATIVE, &error );
+      eigvals_Re.push_back(kr);
+      eigvals_Im.push_back(kr);
+  }
+#endif
+}
 
 void MasterEq::initSparseMatSolver(LindbladType lindbladtype){
 

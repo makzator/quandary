@@ -6,6 +6,9 @@
 #include <assert.h>
 #include <iostream> 
 #include "gate.hpp"
+#ifdef WITH_SLEPC
+#include <slepceps.h>
+#endif
 #pragma once
 
 
@@ -45,6 +48,9 @@ class MasterEq{
 
     Mat RHS;                // Realvalued, vectorized systemmatrix (2N^2 x 2N^2)
     MatShellCtx RHSctx;     // MatShell context that contains data needed to apply the RHS
+#ifdef WITH_SLEPC
+    EPS eigensolver;        //  Slepc eigensolver context 
+#endif
 
     Mat* Ac_vec;  // Vector of constant mats for time-varying Hamiltonian (real) 
     Mat* Bc_vec;  // Vector of constant mats for time-varying Hamiltonian (imag) 
@@ -92,6 +98,9 @@ class MasterEq{
 
     /* Access the right-hand-side matrix */
     Mat getRHS();
+
+    /* Compute eigenvalues */
+    void getEigvals(const double t, std::vector<double>& eigvals_Re, std::vector<double>& eigvals_Im);
 
     /* 
      * Compute gradient of RHS wrt control parameters:
