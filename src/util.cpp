@@ -285,3 +285,41 @@ void read_vector(const char *filename, double *var, int dim) {
   fclose(file);
 }
 
+
+/* Compute eigenvalues */
+void getEigvals(const Mat A, std::vector<double>& eigvals_Re, std::vector<double>& eigvals_Im){
+
+#ifdef WITH_SLEPC
+
+  /* Create Slepc's eigensolver */
+  EPS eigensolver;       
+  EPSCreate(PETSC_COMM_WORLD, &eigensolver);
+  EPSSetOperators(eigensolver, A, NULL);
+  EPSSetProblemType(eigensolver, EPS_NHEP);
+  EPSSetFromOptions(eigensolver);
+
+  // Solve eigenvalue problem
+  EPSSolve(eigensolver);
+
+  // Get the result
+  int nconv;
+  double kr, ki, error;
+  EPSGetConverged(eigensolver, &nconv );
+  for (int j=0; j<nconv; j++) {
+      EPSGetEigenpair( eigensolver, j, &kr, &ki, NULL, NULL);
+      EPSComputeError( eigensolver, j, EPS_ERROR_ABSOLUTE, &error );
+      if (error > 1e-12) {
+        printf("WARNING: Eigensolver error = %1.14e\n", error);
+      }
+      eigvals_Re.push_back(kr);
+      eigvals_Im.push_back(ki);
+  }
+
+  /* Clean up*/
+  EPSDestroy(&eigensolver);
+#endif
+}
+
+
+
+

@@ -6,7 +6,7 @@
 SLEPC_DIR=${HOME}/Software/slepc-3.13.3
 
 # Set Braid location, or comment out
-#BRAID_DIR = ${HOME}/Numerics/xbraid_solveadjointwithxbraid
+BRAID_DIR = ${HOME}/Numerics/xbraid_solveadjointwithxbraid
 
 # Choose to run sanity tests
 SANITY_CHECK = false
