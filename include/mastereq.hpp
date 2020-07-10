@@ -92,7 +92,7 @@ class MasterEq{
 
     /* Access the right-hand-side matrix */
     Mat getRHS();
-
+    
     /* 
      * Compute gradient of RHS wrt control parameters:
      * grad += alpha * RHS(x)^T * x_bar  

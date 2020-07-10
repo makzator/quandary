@@ -1,4 +1,8 @@
 #include <petscmat.h>
+#include <vector>
+#ifdef WITH_SLEPC
+#include <slepceps.h>
+#endif
 #pragma once
 
 int getIndexReal(const int i); // Return storage index of Re(x[i]) (colocated: x[2*i], blocked: x[i])
@@ -46,3 +50,9 @@ PetscErrorCode StateHasTrace1(Vec x, PetscReal tol, PetscBool *flag);
  * Read data from file
  */
 void read_vector(const char *filename, double *var, int dim);
+
+
+/* 
+ * Compute eigenvalues of A
+ */
+void getEigvals(const Mat A, std::vector<double>& eigvals_Re, std::vector<double>& eigvals_Im);

@@ -140,7 +140,6 @@ MasterEq::~MasterEq(){
   }
 }
 
-
 void MasterEq::initSparseMatSolver(LindbladType lindbladtype){
 
   Mat loweringOP, loweringOP_T;
@@ -892,6 +891,19 @@ int myMatMult_sparsemat(Mat RHS, Vec x, Vec y){
     VecAXPY(vout, p, *shellctx->Bcu);
   }
 
+  // // compute eigenvalues
+  // Mat A = (*(shellctx->Ac_vec))[0];
+  // Mat B = (*(shellctx->Bc_vec))[0];
+  // Mat M = B;
+  // if (shellctx->time == 0.00005) {
+  //   MatView(M, 0);
+  //   std::vector<double> eigvals_Re, eigvals_Im;
+  //   printf("eigenvalues(B) at t=%f\n", shellctx->time);
+  //   getEigvals(M, eigvals_Re, eigvals_Im);
+  //   for (int i=0; i<eigvals_Im.size(); i++){
+  //     printf("%1.8e + %1.8e i\n", eigvals_Re[i], eigvals_Im[i]);
+  //   } 
+  // }
 
   /* Restore */
   VecRestoreSubVector(x, *shellctx->isu, &u);
