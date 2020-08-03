@@ -198,7 +198,7 @@ void Init_Tensors(int nOsc,int* nLevels,Matrix<double> * &Hsym,Matrix<double> * 
 
   /* Initial condition: a canonical unit vector */
   inds[0] = 0;
-  inds[1] = 2;
+  // inds[1] = 2;
   // inds[2] = 2;
   vals[0] = 1.0/np;
   // vals[1] = sqrt(0.5)/np;
@@ -240,6 +240,7 @@ void LeftMult(int nOsc, int* nLevels, Matrix<double>* &Hsym,
   char psi_ind[100];
   char Apsi_ind[100];
   char Ham_ind[2];
+  double mul = 0.0;
 
 
   for(int i=0;i<2*nOsc;i++){ 
@@ -256,15 +257,16 @@ void LeftMult(int nOsc, int* nLevels, Matrix<double>* &Hsym,
     Ham_ind[0] = Apsi_ind[2*i];
     psi_ind[2*i] = ind_names[2*nOsc];
     
-    Au.contract(1.0, Hanti[i],Ham_ind,u,psi_ind,1.0,Apsi_ind);
+    Au.contract(1.0, Hanti[i],Ham_ind,u,psi_ind,mul,Apsi_ind);
     Au.contract(1.0, Hsym[i],Ham_ind,v,psi_ind,1.0,Apsi_ind);
-    Av.contract(-1.0, Hsym[i],Ham_ind,u,psi_ind,1.0,Apsi_ind);
+    Av.contract(-1.0, Hsym[i],Ham_ind,u,psi_ind,mul,Apsi_ind);
     Av.contract(1.0, Hanti[i],Ham_ind,v,psi_ind,1.0,Apsi_ind);
     // Au[Apsi_ind] = Au[Apsi_ind] + Hanti[i][Ham_ind]*u[psi_ind] + Hsym[i][Ham_ind]*v[psi_ind];
     // Av[Apsi_ind] = Av[Apsi_ind] + Hanti[i][Ham_ind]*v[psi_ind] - Hsym[i][Ham_ind]*u[psi_ind];
 
     // Reset string
     psi_ind[2*i] = ind_names[2*i];
+    mul = 1.0;
   }
 
   // printf("Now we cast to a matrix.\n");
@@ -386,8 +388,8 @@ void Neumann(double dt, double tol, int nOsc,int* nLevels,
   v = Av;
   tmp_u = 0.0;
   tmp_v = 0.0;
-  // while(abs(res) > tol){
-  while(iter < 2){
+  while(abs(res) > tol){
+  // while(iter < 2){
     LeftMult(nOsc,nLevels,Hsym,Hanti,Au,Av,tmp_u,tmp_v,dw);
     RightMul(nOsc,nLevels,Hsym,Hanti,Au,Av,tmp_u,tmp_v,dw);
     u.sum(coeff,tmp_u,psi_ind,1.0,Apsi_ind);
@@ -416,7 +418,8 @@ double implicit_midpoint(double dt, double t, int nOsc,int* nLevels,
   char ind_names[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
   char psi_ind[100];
   char Apsi_ind[100];
-  double tol = min(pow(dt,2),1e-3);
+  // double tol = min(pow(dt,2),1e-3);
+  double tol = 1e-8;
 
   for(int i=0;i<2*nOsc;i++){
     psi_ind[i] = ind_names[i];
@@ -449,8 +452,8 @@ double implicit_midpoint(double dt, double t, int nOsc,int* nLevels,
 
 int main(int argc, char ** argv){
   int rank, np, pass;
-  int nOsc = 3;
-  int maxOsc = 3;
+  int nOsc = 2;
+  // int maxOsc = 1;
   int * nLevels;
   int nsteps;
   double st_time, end_time;
@@ -482,86 +485,36 @@ int main(int argc, char ** argv){
   // Define ctf world object
   World dw(MPI_COMM_WORLD,argc, argv);
 
-  if(rank == 0){
-    sprintf(fName, "Time_%2.2i.txt", np);
-    extFile = fopen(fName, "w");
+  // if(rank == 0){
+  //   sprintf(fName, "Time_%2.2i.txt", np);
+  //   extFile = fopen(fName, "w");
+  // }
+
+  nLevels = new int[nOsc];
+  for(int i =0;i<nOsc;i++) nLevels[i] = 30;
+
+  Init_Tensors(nOsc,nLevels,Hsym,Hanti,u,v,up,vp,tmp_u,tmp_v,Au,Av,dw);
+  nsteps = (int) ceil(finalTime/dt);
+  dt     = finalTime/((double) nsteps);
+  if(rank == 0) printf("The time step is %3.2e.\n",dt);
+
+  st_time = MPI_Wtime();
+  for(int k = 0;k<nsteps;k++){
+    t = implicit_midpoint(dt,t,nOsc,nLevels,Hsym,Hanti,u,v,tmp_u,tmp_v,up,vp,Au,Av,dw);
+    // Au = 0.0;
+    // Av = 0.0;
   }
+  end_time = MPI_Wtime();
+  // err = compute_error_real(u,v,t,dw);
+  // if(rank == 0) printf("Error : %6.2e.\n",err);  
+  if(rank == 0) printf("Total runtime : %6.2e.\n",end_time);
 
-  // Loop over increasing number of "oscillators"
-  for(int iter=0;iter<maxOsc;iter++){
-    // nOsc = 2*(iter+1);
-    // nOsc = iter+1;
-    // nOsc = 3;
-    nLevels = new int[nOsc];
-    // for(int i=0;i<nOsc;i++) nLevels[i] = 30;
-    nLevels[0] = 3;
-    nLevels[1] = 3;
-    nLevels[2] = 30;
 
-    Init_Tensors(nOsc,nLevels,Hsym,Hanti,u,v,up,vp,tmp_u,tmp_v,Au,Av,dw);
-    nsteps = (int) ceil(finalTime/dt);
-    dt     = finalTime/((double) nsteps);
-    printf("The time step is %3.2e.\n",dt);
+  delete[] nLevels;
+  delete[] Hanti;
+  delete[] Hsym;
 
-    // nsteps = 1;
-    st_time = MPI_Wtime();
-    for(int k = 0;k<nsteps;k++){
-      // t = forward_euler(dt, t, nOsc, nLevels, Hsym, Hanti, u, v, up, vp, Au, Av, dw);
-      t = implicit_midpoint(dt,t,nOsc,nLevels,Hsym,Hanti,u,v,tmp_u,tmp_v,up,vp,Au,Av,dw);
-      Au = 0.0;
-      Av = 0.0;
-    }
-    end_time = MPI_Wtime();
-    printf("Total runtime : %6.2e.\n",end_time);
-
-    // printf("We stepped forward in time.\n");
-    // u.prnt();
-    // v.prnt();
-    // printf("Final time : %6.2e.\n",t);
-    // err = compute_error_im(u,v, t, dw);
-    // // err = compute_error_real(u,v, t, dw);
-    // printf("The error is %16.15e.\n",err);
-    // exit(1);
-
-    // Left multiplication (fused)
-    st_time = MPI_Wtime();
-    // MatMul1(nOsc,nLevels, Hsym,Hanti, u,v,Au,Av,dw);
-    end_time = MPI_Wtime();
-    timings[0] = end_time-st_time;
-
-    // Left multiplication (contraction)
-    st_time = MPI_Wtime();
-    LeftMult(nOsc,nLevels, Hsym,Hanti, u,v,Au,Av,dw);
-    end_time = MPI_Wtime();
-    timings[1] = end_time-st_time;
-
-    // Right multiplication (fused)
-    st_time = MPI_Wtime();
-    // RMv1(nOsc,nLevels, Hsym,Hanti, u,v,Au,Av,dw);
-    end_time = MPI_Wtime();
-    timings[2] = end_time-st_time;
-
-    // Right multiplication (contraction)
-    st_time = MPI_Wtime();
-    RightMul(nOsc,nLevels, Hsym,Hanti, u,v,Au,Av,dw);
-    end_time = MPI_Wtime();
-    timings[3] = end_time-st_time;
-
-    if(rank == 0){
-      fprintf(extFile, "%4.4i %10.9e %10.9e %10.9e %10.9e\n", nOsc, timings[0], timings[1], timings[2], timings[3]);
-    }
-    u.~Tensor();
-    v.~Tensor();
-    Au.~Tensor();
-    Av.~Tensor();
-    tmp_u.~Tensor();
-    tmp_v.~Tensor();
-    delete[] nLevels;
-    delete[] Hanti;
-    delete[] Hsym;
-  }
-
-  if(rank==0) fclose(extFile);
+  // if(rank==0) fclose(extFile);
 
   MPI_Finalize();
   return 0;
