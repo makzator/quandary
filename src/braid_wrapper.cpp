@@ -55,15 +55,19 @@ myBraidApp::myBraidApp(MPI_Comm comm_braid_, double total_time_, int ntime_, TS 
   double abstol = config->GetDoubleParam("braid_abstol", 1e-6);
   core->SetAbsTol( abstol );
   double reltol = config->GetDoubleParam("braid_reltol", 1e-4);
-  core->SetRelTol( reltol );
+  //core->SetRelTol( reltol );
   bool skip = (PetscBool) config->GetBoolParam("braid_skip", false);
   core->SetSkip( skip);
   bool fmg = (PetscBool) config->GetBoolParam("braid_fmg", false);
   if (fmg) core->SetFMG();
 
-  core->SetNRelax(-1, 1);
+  int nrelax = config->GetIntParam("braid_relaxations", 0);
+
+  core->SetNRelax(-1, nrelax);
   core->SetSeqSoln(0);
 
+  bool printstats = config->GetBoolParam("braid_printstats",false);
+  if (printstats) core->PrintStats();
 
   /* Output options */
   accesslevel = config->GetIntParam("braid_accesslevel", 1);
