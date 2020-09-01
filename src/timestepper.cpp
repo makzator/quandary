@@ -260,17 +260,22 @@ void ImplMidpoint::evolveFWD(const double tstart,const  double tstop, Vec x) {
   mastereq->assemble_RHS( (tstart + tstop) / 2.0);
   Mat A = mastereq->getRHS(); 
 
-
+  
   double t_eig = 0.0001;
-  if (tstop == t_eig) {
+  if (tstop >= t_eig) {
+    FILE *myfile;
+    myfile =fopen("eig.txt","w");
     std::vector<double> eigvals_Re, eigvals_Im;
     getEigvals(A, eigvals_Re, eigvals_Im);
     printf("\n EIGVALS(realvaluedM) at t= %f\n", t_eig);
     for (int i=0; i<eigvals_Re.size(); i++){
       printf("%1.8e + %1.8e i\n", eigvals_Re[i], eigvals_Im[i]);
+      fprintf(myfile, "%1.8e + %1.8e i\n", eigvals_Re[i], eigvals_Im[i]);  
     } 
+    fclose(myfile);
+    exit(1);
   }
-
+  
 
   /* Compute rhs = A x */
   MatMult(A, x, rhs);
