@@ -56,6 +56,11 @@ double ControlBasis::evaluate(const double t, const std::vector<double>& coeff, 
 
 void ControlBasis::derivative(const double t, double* coeff_diff, const double valbar, const ControlType controltype) {
 
+    if (controltype == LAB) {
+      printf("ERROR: derivative of spline for LAB frame is not implemented!\n");
+      exit(1);
+    }
+
     /* Iterate over basis function */
     for (int l=0; l<nbasis; l++) {
         double basis = basisfunction(l, t); 
