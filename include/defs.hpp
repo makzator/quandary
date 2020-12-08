@@ -13,6 +13,7 @@ enum ObjectiveType {GATE_FROBENIUS,    // Compare final state to linear gate tra
                     EXPECTEDENERGYa,   // Square average of expected energy levels of each oscillator
                     EXPECTEDENERGYb,   // Average of square expected energy levels of each oscillator
                     EXPECTEDENERGYc,   // Average of expected energy levels of each oscillator
+                    ZEROTOONE,           // Experimental: 0->1 transition for one oscillator
                     GROUNDSTATE};     // Compares final state to groundstate (full matrix)
 
 /* Type of control fucntion evaluation: Rotating frame Real p(t), rotating frame imaginary q(t), or Lab frame f(t) */

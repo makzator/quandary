@@ -83,7 +83,8 @@ OptimProblem::OptimProblem(MapParam config, TimeStepper* timestepper_, MPI_Comm 
   else if (objective_str[0].compare("expectedEnergya")==0) objective_type = EXPECTEDENERGYa;
   else if (objective_str[0].compare("expectedEnergyb")==0) objective_type = EXPECTEDENERGYb;
   else if (objective_str[0].compare("expectedEnergyc")==0) objective_type = EXPECTEDENERGYc;
-  else if (objective_str[0].compare("groundstate")   ==0) objective_type = GROUNDSTATE;
+  else if (objective_str[0].compare("zerotoone")      ==0) objective_type = ZEROTOONE;
+  else if (objective_str[0].compare("groundstate")    ==0) objective_type = GROUNDSTATE;
   else {
       printf("\n\n ERROR: Unknown objective function: %s\n", objective_str[0].c_str());
       exit(1);
@@ -588,18 +589,19 @@ PetscErrorCode TaoMonitor(Tao tao,void*ptr){
   ctx->output->optim_iter = iter;
 
   /* Compute average fidelity */
-  InitialConditionType inittype_org = ctx->initcond_type; 
-  ObjectiveType objtype_org = ctx->objective_type; 
-  int ninit_org = ctx->ninit_local;
-  ctx->initcond_type = BASIS;
-  ctx->ninit_local = 16;
-  ctx->ninit= 16;
-  ctx->objective_type = GATE_TRACE;
-  double obj = ctx->evalF(params);
-  // double F_avg = 1.0 - ctx->obj_cost;
-  ctx->initcond_type = inittype_org;
-  ctx->objective_type = objtype_org;
-  ctx->ninit_local = ninit_org;
+  // InitialConditionType inittype_org = ctx->initcond_type; 
+  // ObjectiveType objtype_org = ctx->objective_type; 
+  // int ninit_org = ctx->ninit_local;
+  // ctx->initcond_type = BASIS;
+  // ctx->ninit_local = 16;
+  // ctx->ninit= 16;
+  // ctx->objective_type = GATE_TRACE;
+  // double obj = ctx->evalF(params);
+  double obj = 0.0;
+  // // double F_avg = 1.0 - ctx->obj_cost;
+  // ctx->initcond_type = inittype_org;
+  // ctx->objective_type = objtype_org;
+  // ctx->ninit_local = ninit_org;
 
   /* Print to optimization file */
   ctx->output->writeOptimFile(f, gnorm, deltax, ctx->obj_cost, ctx->obj_regul, ctx->obj_penal);
@@ -642,6 +644,7 @@ PetscErrorCode TaoEvalGradient(Tao tao, Vec x, Vec G, void*ptr){
 double objectiveT(MasterEq* mastereq, ObjectiveType objective_type, const std::vector<int>& obj_oscilIDs, const std::vector<double>& obj_weights,  const Vec state, const Vec rho_t0, Gate* targetgate) {
   double obj_local = 0.0;
   double sum;
+  int diagelem, dim;
 
   if (state != NULL) {
 
@@ -695,6 +698,20 @@ double objectiveT(MasterEq* mastereq, ObjectiveType objective_type, const std::v
         obj_local = sum / obj_oscilIDs.size();
         break;
 
+      
+      case ZEROTOONE:
+        /* compare full state to 1-state frob = 1/2 || q(T) - e_1||^2 */
+        assert(mastereq->getNOscillators() == 1);
+
+        dim = (int) sqrt(mastereq->getDim());
+        diagelem = getIndexReal(1*dim + 1);
+        VecSetValue(state, diagelem, -1.0, ADD_VALUES); // substract 1.0 from (1,1) element
+        VecNorm(state, NORM_2, &obj_local);      // norm 
+        obj_local = 0.5*pow(obj_local, 2.0);
+        VecSetValue(state, diagelem, 1.0, ADD_VALUES); // restore state 
+        VecAssemblyBegin(state); VecAssemblyEnd(state);
+        break;
+
       case GROUNDSTATE:
         /* compare full state to groundstate */
 
@@ -722,6 +739,8 @@ double objectiveT(MasterEq* mastereq, ObjectiveType objective_type, const std::v
 
 
 void objectiveT_diff(MasterEq* mastereq, ObjectiveType objective_type, const std::vector<int>& obj_oscilIDs, const std::vector<double>& obj_weights, Vec state, Vec statebar, const Vec rho_t0, const double obj_bar, Gate* targetgate){
+
+  int diagelem, dim;
 
   if (state != NULL) {
     switch (objective_type) {
@@ -767,6 +786,15 @@ void objectiveT_diff(MasterEq* mastereq, ObjectiveType objective_type, const std
         for (int i=0; i<obj_oscilIDs.size(); i++) {
           mastereq->getOscillator(obj_oscilIDs[i])->expectedEnergy_diff(state, statebar, Jbar);
         }
+        break;
+
+      case ZEROTOONE:
+        /* Derivative of frobenius norm: (q(T) - e_1) * frob_bar */
+        VecAXPY(statebar, obj_bar, state);
+        dim = (int) sqrt(mastereq->getDim());
+        diagelem = getIndexReal(1*dim + 1);
+        VecSetValue(statebar, diagelem, -1.0*obj_bar, ADD_VALUES);
+        VecAssemblyBegin(statebar); VecAssemblyEnd(statebar);
         break;
 
     case GROUNDSTATE:
