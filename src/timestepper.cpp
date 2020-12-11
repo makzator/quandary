@@ -136,18 +136,95 @@ void TimeStepper::solveAdjointODE(int initid, Vec rho_t0_bar, double Jbar) {
 
 double TimeStepper::penaltyIntegral(double time, const Vec x){
 
-  double expected = objectiveT(mastereq, objective_type, obj_oscilIDs, x, NULL, NULL);
-  // double weight = pow( (time) / total_time, penalty_weightparam);  
-  double weight = 1./penalty_weightparam * exp(- pow((time - total_time)/penalty_weightparam, 2));
+  // double expected = objectiveT(mastereq, objective_type, obj_oscilIDs, x, NULL, NULL);
+  // // double weight = pow( (time) / total_time, penalty_weightparam);  
+  // double weight = 1./penalty_weightparam * exp(- pow((time - total_time)/penalty_weightparam, 2));
     
-  return dt * weight * expected;
+  // return dt * weight * expected;
+
+  double guardpop = 0.0;
+  double pop_re, pop_im;
+  int vecID_re, vecID_im;
+  int i;
+  int d = 6;
+  // ||rho(2,2)||^2
+  i = 2;
+  vecID_re = getIndexReal(getVecID(i,i,d));
+  vecID_im = getIndexImag(getVecID(i,i,d));
+  VecGetValues(x, 1, &vecID_re, &pop_re);
+  VecGetValues(x, 1, &vecID_im, &pop_im);
+  guardpop += pop_re*pop_re + pop_im*pop_im;
+  // ||rho(3,3)||^2
+  i = 3;
+  vecID_re = getIndexReal(getVecID(i,i,d));
+  vecID_im = getIndexImag(getVecID(i,i,d));
+  VecGetValues(x, 1, &vecID_re, &pop_re);
+  VecGetValues(x, 1, &vecID_im, &pop_im);
+  guardpop += pop_re*pop_re + pop_im*pop_im;
+  // ||rho(4,4)||^2
+  i = 4;
+  vecID_re = getIndexReal(getVecID(i,i,d));
+  vecID_im = getIndexImag(getVecID(i,i,d));
+  VecGetValues(x, 1, &vecID_re, &pop_re);
+  VecGetValues(x, 1, &vecID_im, &pop_im);
+  guardpop += pop_re*pop_re + pop_im*pop_im;
+  // ||rho(5,5)||^2
+  i = 5;
+  vecID_re = getIndexReal(getVecID(i,i,d));
+  vecID_im = getIndexImag(getVecID(i,i,d));
+  VecGetValues(x, 1, &vecID_re, &pop_re);
+  VecGetValues(x, 1, &vecID_im, &pop_im);
+  guardpop += pop_re*pop_re + pop_im*pop_im;
+
+  return dt * guardpop;
 }
 
 void TimeStepper::penaltyIntegral_diff(double time, const Vec x, Vec xbar, double penaltybar){
 
-  // double weight = pow(time/ total_time, penalty_weightparam);  
-  double weight = 1./penalty_weightparam * exp(- pow((time - total_time)/penalty_weightparam, 2));
-  objectiveT_diff(mastereq, objective_type, obj_oscilIDs, x, xbar, NULL, dt*weight*penaltybar, NULL);
+  // // double weight = pow(time/ total_time, penalty_weightparam);  
+  // double weight = 1./penalty_weightparam * exp(- pow((time - total_time)/penalty_weightparam, 2));
+  // objectiveT_diff(mastereq, objective_type, obj_oscilIDs, x, xbar, NULL, dt*weight*penaltybar, NULL);
+
+  double val;
+  int vecID_re, vecID_im;
+  int i;
+  int d = 6;
+  double pop_re, pop_im;
+  // 2 * rho(2,2) * penalbar * dt
+  i = 2;
+  vecID_re = getIndexReal(getVecID(i,i,d));
+  vecID_im = getIndexImag(getVecID(i,i,d));
+  VecGetValues(x, 1, &vecID_re, &pop_re);
+  VecGetValues(x, 1, &vecID_im, &pop_im);
+  VecSetValue(xbar, vecID_re, 2.*pop_re*dt*penaltybar, ADD_VALUES);
+  VecSetValue(xbar, vecID_im, 2.*pop_im*dt*penaltybar, ADD_VALUES);
+  // 2 * rho(3,3) * penalbar * dt
+  i = 3;
+  vecID_re = getIndexReal(getVecID(i,i,d));
+  vecID_im = getIndexImag(getVecID(i,i,d));
+  VecGetValues(x, 1, &vecID_re, &pop_re);
+  VecGetValues(x, 1, &vecID_im, &pop_im);
+  VecSetValue(xbar, vecID_re, 2.*pop_re*dt*penaltybar, ADD_VALUES);
+  VecSetValue(xbar, vecID_im, 2.*pop_im*dt*penaltybar, ADD_VALUES);
+  // 2 * rho(4,4) * penalbar * dt
+  i = 4;
+  vecID_re = getIndexReal(getVecID(i,i,d));
+  vecID_im = getIndexImag(getVecID(i,i,d));
+  VecGetValues(x, 1, &vecID_re, &pop_re);
+  VecGetValues(x, 1, &vecID_im, &pop_im);
+  VecSetValue(xbar, vecID_re, 2.*pop_re*dt*penaltybar, ADD_VALUES);
+  VecSetValue(xbar, vecID_im, 2.*pop_im*dt*penaltybar, ADD_VALUES);
+  // 2 * rho(5,5) * penalbar * dt
+  i = 5;
+  vecID_re = getIndexReal(getVecID(i,i,d));
+  vecID_im = getIndexImag(getVecID(i,i,d));
+  VecGetValues(x, 1, &vecID_re, &pop_re);
+  VecGetValues(x, 1, &vecID_im, &pop_im);
+  VecSetValue(xbar, vecID_re, 2.*pop_re*dt*penaltybar, ADD_VALUES);
+  VecSetValue(xbar, vecID_im, 2.*pop_im*dt*penaltybar, ADD_VALUES);
+  VecAssemblyBegin(xbar);
+  VecAssemblyEnd(xbar);
+
 }
 
 void TimeStepper::evolveBWD(const double tstart, const double tstop, const Vec x_stop, Vec x_adj, Vec grad, bool compute_gradient){}
