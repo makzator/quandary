@@ -27,13 +27,15 @@ typedef struct {
 
 
 /* Define the Matrix-Vector products for the RHS MatShell */
-int myMatMult_matfree_2osc(Mat RHS, Vec x, Vec y);              // Matrix free solver, currently only for 2 oscillators 
+int myMatMult_matfree_2osc(Mat RHS, Vec x, Vec y);              // Matrix free solver for 2 oscillators
 int myMatMultTranspose_matfree_2Osc(Mat RHS, Vec x, Vec y);
+int myMatMult_matfree_4osc(Mat RHS, Vec x, Vec y);              // Matrix free solver for 4 oscillators
+int myMatMultTranspose_matfree_4Osc(Mat RHS, Vec x, Vec y);
 int myMatMult_sparsemat(Mat RHS, Vec x, Vec y);                 // Sparse matrix solver
 int myMatMultTranspose_sparsemat(Mat RHS, Vec x, Vec y);
 
 
-/* 
+/*
  * Implements the Lindblad master equation
  */
 class MasterEq{
@@ -123,6 +125,7 @@ class MasterEq{
 };
 
 
+/* Tensor contraction inlines for 2 oscillators */
 inline double Hd(const double xi0, const double xi01, const double xi1, const double detuning0, const double detuning1, const int a, const int b) {
   return - xi0*M_PI * a * (a-1) - xi01*M_PI*2 * a * b - xi1*M_PI * b * (b-1) + detuning0*2*M_PI*a + detuning1*2*M_PI*b; 
 };
@@ -143,3 +146,47 @@ inline int TensorGetIndex(const int nlevels0, const int nlevels1,const  int i0, 
 };
 
 
+
+/* Tensor contraction inlines for 4 oscillators */
+inline double Hd(const double xi0, const double xi01, const double xi02,  const double xi03, const double xi1, const double xi12, const double xi13, const double xi2, const double xi23, const double xi3, const double detuning0, const double detuning1, const double detuning2, const double detuning3, const int i0, const int i1, const int i2, const int i3) {
+  return - xi0*M_PI * i0 * (i0-1)
+         - xi1*M_PI * i1 * (i1-1)
+         - xi2*M_PI * i2 * (i2-1)
+         - xi3*M_PI * i3 * (i3-1)
+         - xi01*M_PI*2 * i0 * i1
+         - xi02*M_PI*2 * i0 * i2
+         - xi03*M_PI*2 * i0 * i3
+         - xi12*M_PI*2 * i1 * i2
+         - xi13*M_PI*2 * i1 * i3
+         - xi23*M_PI*2 * i2 * i3
+         + detuning0*2*M_PI*i0
+         + detuning1*2*M_PI*i1
+         + detuning2*2*M_PI*i2
+         + detuning3*2*M_PI*i3;
+};
+
+inline double L1diag(const double decay0, const double decay1, const double decay2, const double decay3,
+                     const int i0,  const int i1,  const int i2,  const int i3,
+                     const int i0p, const int i1p, const int i2p, const int i3p){
+  return - decay0 / 2.0 * ( i0 + i0p )
+         - decay1 / 2.0 * ( i1 + i1p )
+         - decay2 / 2.0 * ( i2 + i2p )
+         - decay3 / 2.0 * ( i3 + i3p );
+};
+
+
+inline double L2(const double dephase0, const double dephase1, const double dephase2, const double dephase3,
+                 const int i0,  const int i1,  const int i2,  const int i3,
+                 const int i0p, const int i1p, const int i2p, const int i3p){
+  return   dephase0 * ( i0*i0p - 1./2. * (i0*i0 + i0p*i0p) )
+         + dephase1 * ( i1*i1p - 1./2. * (i1*i1 + i1p*i1p) )
+         + dephase2 * ( i2*i2p - 1./2. * (i2*i2 + i2p*i2p) )
+         + dephase3 * ( i3*i3p - 1./2. * (i3*i3 + i3p*i3p) );
+};
+
+inline int TensorGetIndex(const int nlevels0, const int nlevels1, const int nlevels2, const int nlevels3,
+                          const int i0,  const int i1,  const int i2,  const int i3,
+                          const int i0p, const int i1p, const int i2p, const int i3p){
+  // return i0*nlevels1 + i1 + (nlevels0 * nlevels1) * ( i0p * nlevels1 + i1p);
+  return i0*nlevels1*nlevels2*nlevels3 + i1*nlevels2*nlevels3 + i2*nlevels3 + i3 + (nlevels0*nlevels1*nlevels2*nlevels3) * ( i0p * nlevels1*nlevels2*nlevels3 + i1p*nlevels2*nlevels3 + i2p*nlevels3 + i3p);
+};
