@@ -491,145 +491,417 @@ void MasterEq::computedRHSdp(const double t, const Vec x, const Vec xbar, const 
 
 
   if (usematfree) { // matrix free solver
-    assert(nlevels.size()==2);  // TODO: Implement for four oscillators!
 
     const double* xptr, *xbarptr;
     VecGetArrayRead(x, &xptr);
     VecGetArrayRead(xbar, &xbarptr);
 
-    /* compute strides for accessing x at i0+1, i0-1, i0p+1, i0p-1, i1+1, i1-1, i1p+1, i1p-1: */
-    int n0 = nlevels[0];
-    int n1 = nlevels[1];
-    int stridei0  = TensorGetIndex(n0,n1, 1,0,0,0);
-    int stridei1  = TensorGetIndex(n0,n1, 0,1,0,0);
-    int stridei0p = TensorGetIndex(n0,n1, 0,0,1,0);
-    int stridei1p = TensorGetIndex(n0,n1, 0,0,0,1);
+    double coeff_p_osc0, coeff_q_osc0;
+    double coeff_p_osc1, coeff_q_osc1;
+    double coeff_p_osc2, coeff_q_osc2;
+    double coeff_p_osc3, coeff_q_osc3;
 
-    /* Collect coefficients for gradient  */
-    double coeff_p_osc0 = 0.0;
-    double coeff_q_osc0 = 0.0;
-    double coeff_p_osc1 = 0.0;
-    double coeff_q_osc1 = 0.0;
-    int it = 0;
-    // Iterate over indices of xbar
-    for (int i0p = 0; i0p < n0; i0p++)  {
-      for (int i1p = 0; i1p < n1; i1p++)  {
-        for (int i0 = 0; i0 < n0; i0++)  {
-          for (int i1 = 0; i1 < n1; i1++)  {
+    if (noscillators == 2) {
 
-            /* Get xbar */
-            double xbarre = xbarptr[2*it];
-            double xbarim = xbarptr[2*it+1];
+      /* compute strides for accessing x at i0+1, i0-1, i0p+1, i0p-1, i1+1, i1-1, i1p+1, i1p-1: */
+      int n0 = nlevels[0];
+      int n1 = nlevels[1];
+      int stridei0  = TensorGetIndex(n0,n1, 1,0,0,0);
+      int stridei1  = TensorGetIndex(n0,n1, 0,1,0,0);
+      int stridei0p = TensorGetIndex(n0,n1, 0,0,1,0);
+      int stridei1p = TensorGetIndex(n0,n1, 0,0,0,1);
 
-            /* --- Oscillator 0 --- */
-            double res_p_re = 0.0;
-            double res_p_im = 0.0;
-            double res_q_re = 0.0;
-            double res_q_im = 0.0;
-            /* ik+1..,ik'.. term */
-            if (i0 < n0-1) {
-              int itx = it + stridei0;
-              double xre = xptr[2 * itx];
-              double xim = xptr[2 * itx + 1];
-              double sq = sqrt(i0 + 1);
-              res_p_re +=   sq * xim;
-              res_p_im += - sq * xre;
-              res_q_re +=   sq * xre;
-              res_q_im +=   sq * xim;
-            }
-            /* \rho(ik..,ik'+1..) */
-            if (i0p < n0-1) {
-              int itx = it + stridei0p;
-              double xre = xptr[2 * itx];
-              double xim = xptr[2 * itx + 1];
-              double sq = sqrt(i0p + 1);
-              res_p_re += - sq * xim;
-              res_p_im += + sq * xre;
-              res_q_re +=   sq * xre;
-              res_q_im +=   sq * xim;
-            }
-            /* \rho(ik-1..,ik'..) */
-            if (i0 > 0) {
-              int itx = it - stridei0;
-              double xre = xptr[2 * itx];
-              double xim = xptr[2 * itx + 1];
-              double sq = sqrt(i0);
-              res_p_re += + sq * xim;
-              res_p_im += - sq * xre;
-              res_q_re += - sq * xre;
-              res_q_im += - sq * xim;
-            }
-            /* \rho(ik..,ik'-1..) */
-            if (i0p > 0) {
-              int itx = it - stridei0p;
-              double xre = xptr[2 * itx];
-              double xim = xptr[2 * itx + 1];
-              double sq = sqrt(i0p);
-              res_p_re += - sq * xim;
-              res_p_im += + sq * xre;
-              res_q_re += - sq * xre;
-              res_q_im += - sq * xim;
-            }
-            /* Update the coefficients */
-            coeff_p_osc0 += res_p_re * xbarre + res_p_im * xbarim; 
-            coeff_q_osc0 += res_q_re * xbarre + res_q_im * xbarim; 
+      /* Collect coefficients for gradient  */
+      coeff_p_osc0 = 0.0;
+      coeff_q_osc0 = 0.0;
+      coeff_p_osc1 = 0.0;
+      coeff_q_osc1 = 0.0;
+      int it = 0;
+      // Iterate over indices of xbar
+      for (int i0p = 0; i0p < n0; i0p++)  {
+        for (int i1p = 0; i1p < n1; i1p++)  {
+          for (int i0 = 0; i0 < n0; i0++)  {
+            for (int i1 = 0; i1 < n1; i1++)  {
 
-            /* --- Oscillator 1 --- */
-            res_p_re = 0.0;
-            res_p_im = 0.0;
-            res_q_re = 0.0;
-            res_q_im = 0.0;
-            /* ik+1..,ik'.. term */
-            if (i1 < n1-1) {
-              int itx = it + stridei1;
-              double xre = xptr[2 * itx];
-              double xim = xptr[2 * itx + 1];
-              double sq = sqrt(i1 + 1);
-              res_p_re +=   sq * xim;
-              res_p_im += - sq * xre;
-              res_q_re +=   sq * xre;
-              res_q_im +=   sq * xim;
+              /* Get xbar */
+              double xbarre = xbarptr[2*it];
+              double xbarim = xbarptr[2*it+1];
+
+              /* --- Oscillator 0 --- */
+              double res_p_re = 0.0;
+              double res_p_im = 0.0;
+              double res_q_re = 0.0;
+              double res_q_im = 0.0;
+              /* ik+1..,ik'.. term */
+              if (i0 < n0-1) {
+                int itx = it + stridei0;
+                double xre = xptr[2 * itx];
+                double xim = xptr[2 * itx + 1];
+                double sq = sqrt(i0 + 1);
+                res_p_re +=   sq * xim;
+                res_p_im += - sq * xre;
+                res_q_re +=   sq * xre;
+                res_q_im +=   sq * xim;
+              }
+              /* \rho(ik..,ik'+1..) */
+              if (i0p < n0-1) {
+                int itx = it + stridei0p;
+                double xre = xptr[2 * itx];
+                double xim = xptr[2 * itx + 1];
+                double sq = sqrt(i0p + 1);
+                res_p_re += - sq * xim;
+                res_p_im += + sq * xre;
+                res_q_re +=   sq * xre;
+                res_q_im +=   sq * xim;
+              }
+              /* \rho(ik-1..,ik'..) */
+              if (i0 > 0) {
+                int itx = it - stridei0;
+                double xre = xptr[2 * itx];
+                double xim = xptr[2 * itx + 1];
+                double sq = sqrt(i0);
+                res_p_re += + sq * xim;
+                res_p_im += - sq * xre;
+                res_q_re += - sq * xre;
+                res_q_im += - sq * xim;
+              }
+              /* \rho(ik..,ik'-1..) */
+              if (i0p > 0) {
+                int itx = it - stridei0p;
+                double xre = xptr[2 * itx];
+                double xim = xptr[2 * itx + 1];
+                double sq = sqrt(i0p);
+                res_p_re += - sq * xim;
+                res_p_im += + sq * xre;
+                res_q_re += - sq * xre;
+                res_q_im += - sq * xim;
+              }
+              /* Update the coefficients */
+              coeff_p_osc0 += res_p_re * xbarre + res_p_im * xbarim;
+              coeff_q_osc0 += res_q_re * xbarre + res_q_im * xbarim;
+
+              /* --- Oscillator 1 --- */
+              res_p_re = 0.0;
+              res_p_im = 0.0;
+              res_q_re = 0.0;
+              res_q_im = 0.0;
+              /* ik+1..,ik'.. term */
+              if (i1 < n1-1) {
+                int itx = it + stridei1;
+                double xre = xptr[2 * itx];
+                double xim = xptr[2 * itx + 1];
+                double sq = sqrt(i1 + 1);
+                res_p_re +=   sq * xim;
+                res_p_im += - sq * xre;
+                res_q_re +=   sq * xre;
+                res_q_im +=   sq * xim;
+              }
+              /* \rho(ik..,ik'+1..) */
+              if (i1p < n1-1) {
+                int itx = it + stridei1p;
+                double xre = xptr[2 * itx];
+                double xim = xptr[2 * itx + 1];
+                double sq = sqrt(i1p + 1);
+                res_p_re += - sq * xim;
+                res_p_im += + sq * xre;
+                res_q_re +=   sq * xre;
+                res_q_im +=   sq * xim;
+              }
+              /* \rho(ik-1..,ik'..) */
+              if (i1 > 0) {
+                int itx = it - stridei1;
+                double xre = xptr[2 * itx];
+                double xim = xptr[2 * itx + 1];
+                double sq = sqrt(i1);
+                res_p_re += + sq * xim;
+                res_p_im += - sq * xre;
+                res_q_re += - sq * xre;
+                res_q_im += - sq * xim;
+              }
+              /* \rho(ik..,ik'-1..) */
+              if (i1p > 0) {
+                int itx = it - stridei1p;
+                double xre = xptr[2 * itx];
+                double xim = xptr[2 * itx + 1];
+                double sq = sqrt(i1p);
+                res_p_re += - sq * xim;
+                res_p_im += + sq * xre;
+                res_q_re += - sq * xre;
+                res_q_im += - sq * xim;
+              }
+              coeff_p_osc1 += res_p_re * xbarre + res_p_im * xbarim;
+              coeff_q_osc1 += res_q_re * xbarre + res_q_im * xbarim;
+              it++;
             }
-            /* \rho(ik..,ik'+1..) */
-            if (i1p < n1-1) {
-              int itx = it + stridei1p;
-              double xre = xptr[2 * itx];
-              double xim = xptr[2 * itx + 1];
-              double sq = sqrt(i1p + 1);
-              res_p_re += - sq * xim;
-              res_p_im += + sq * xre;
-              res_q_re +=   sq * xre;
-              res_q_im +=   sq * xim;
-            }
-            /* \rho(ik-1..,ik'..) */
-            if (i1 > 0) {
-              int itx = it - stridei1;
-              double xre = xptr[2 * itx];
-              double xim = xptr[2 * itx + 1];
-              double sq = sqrt(i1);
-              res_p_re += + sq * xim;
-              res_p_im += - sq * xre;
-              res_q_re += - sq * xre;
-              res_q_im += - sq * xim;
-            }
-            /* \rho(ik..,ik'-1..) */
-            if (i1p > 0) {
-              int itx = it - stridei1p;
-              double xre = xptr[2 * itx];
-              double xim = xptr[2 * itx + 1];
-              double sq = sqrt(i1p);
-              res_p_re += - sq * xim;
-              res_p_im += + sq * xre;
-              res_q_re += - sq * xre;
-              res_q_im += - sq * xim;
-            }
-            coeff_p_osc1 += res_p_re * xbarre + res_p_im * xbarim; 
-            coeff_q_osc1 += res_q_re * xbarre + res_q_im * xbarim; 
-            it++;
           }
         }
       }
-    }
+
+    } else {
+      assert(noscillators==4);
+
+      /* compute strides for accessing x at i0+1, i0-1, i0p+1, i0p-1, i1+1, i1-1, i1p+1, i1p-1, ... */
+      int n0 = nlevels[0];
+      int n1 = nlevels[1];
+      int n2 = nlevels[2];
+      int n3 = nlevels[3];
+      int stridei0  = TensorGetIndex(n0,n1,n2,n3, 1,0,0,0,0,0,0,0);
+      int stridei1  = TensorGetIndex(n0,n1,n2,n3, 0,1,0,0,0,0,0,0);
+      int stridei2  = TensorGetIndex(n0,n1,n2,n3, 0,0,1,0,0,0,0,0);
+      int stridei3  = TensorGetIndex(n0,n1,n2,n3, 0,0,0,1,0,0,0,0);
+      int stridei0p = TensorGetIndex(n0,n1,n2,n3, 0,0,0,0,1,0,0,0);
+      int stridei1p = TensorGetIndex(n0,n1,n2,n3, 0,0,0,0,0,1,0,0);
+      int stridei2p = TensorGetIndex(n0,n1,n2,n3, 0,0,0,0,0,0,1,0);
+      int stridei3p = TensorGetIndex(n0,n1,n2,n3, 0,0,0,0,0,0,0,1);
+
+
+      /* Collect coefficients for gradient  */
+      coeff_p_osc0 = 0.0;
+      coeff_q_osc0 = 0.0;
+      coeff_p_osc1 = 0.0;
+      coeff_q_osc1 = 0.0;
+      coeff_p_osc2 = 0.0;
+      coeff_q_osc2 = 0.0;
+      coeff_p_osc3 = 0.0;
+      coeff_q_osc3 = 0.0;
+      int it = 0;
+      // Iterate over indices of xbar
+      for (int i0p = 0; i0p < n0; i0p++)  {
+        for (int i1p = 0; i1p < n1; i1p++)  {
+          for (int i2p = 0; i2p < n2; i2p++)  {
+            for (int i3p = 0; i3p < n3; i3p++)  {
+          for (int i0 = 0; i0 < n0; i0++)  {
+            for (int i1 = 0; i1 < n1; i1++)  {
+              for (int i2 = 0; i2 < n2; i2++)  {
+                for (int i3 = 0; i3 < n3; i3++)  {
+
+              /* Get xbar */
+              double xbarre = xbarptr[2*it];
+              double xbarim = xbarptr[2*it+1];
+
+              /* --- Oscillator 0 --- */
+              double res_p_re = 0.0;
+              double res_p_im = 0.0;
+              double res_q_re = 0.0;
+              double res_q_im = 0.0;
+              /* ik+1..,ik'.. term */
+              if (i0 < n0-1) {
+                int itx = it + stridei0;
+                double xre = xptr[2 * itx];
+                double xim = xptr[2 * itx + 1];
+                double sq = sqrt(i0 + 1);
+                res_p_re +=   sq * xim;
+                res_p_im += - sq * xre;
+                res_q_re +=   sq * xre;
+                res_q_im +=   sq * xim;
+              }
+              /* \rho(ik..,ik'+1..) */
+              if (i0p < n0-1) {
+                int itx = it + stridei0p;
+                double xre = xptr[2 * itx];
+                double xim = xptr[2 * itx + 1];
+                double sq = sqrt(i0p + 1);
+                res_p_re += - sq * xim;
+                res_p_im += + sq * xre;
+                res_q_re +=   sq * xre;
+                res_q_im +=   sq * xim;
+              }
+              /* \rho(ik-1..,ik'..) */
+              if (i0 > 0) {
+                int itx = it - stridei0;
+                double xre = xptr[2 * itx];
+                double xim = xptr[2 * itx + 1];
+                double sq = sqrt(i0);
+                res_p_re += + sq * xim;
+                res_p_im += - sq * xre;
+                res_q_re += - sq * xre;
+                res_q_im += - sq * xim;
+              }
+              /* \rho(ik..,ik'-1..) */
+              if (i0p > 0) {
+                int itx = it - stridei0p;
+                double xre = xptr[2 * itx];
+                double xim = xptr[2 * itx + 1];
+                double sq = sqrt(i0p);
+                res_p_re += - sq * xim;
+                res_p_im += + sq * xre;
+                res_q_re += - sq * xre;
+                res_q_im += - sq * xim;
+              }
+              /* Update the coefficients */
+              coeff_p_osc0 += res_p_re * xbarre + res_p_im * xbarim;
+              coeff_q_osc0 += res_q_re * xbarre + res_q_im * xbarim;
+
+              /* --- Oscillator 1 --- */
+              res_p_re = 0.0;
+              res_p_im = 0.0;
+              res_q_re = 0.0;
+              res_q_im = 0.0;
+              /* ik+1..,ik'.. term */
+              if (i1 < n1-1) {
+                int itx = it + stridei1;
+                double xre = xptr[2 * itx];
+                double xim = xptr[2 * itx + 1];
+                double sq = sqrt(i1 + 1);
+                res_p_re +=   sq * xim;
+                res_p_im += - sq * xre;
+                res_q_re +=   sq * xre;
+                res_q_im +=   sq * xim;
+              }
+              /* \rho(ik..,ik'+1..) */
+              if (i1p < n1-1) {
+                int itx = it + stridei1p;
+                double xre = xptr[2 * itx];
+                double xim = xptr[2 * itx + 1];
+                double sq = sqrt(i1p + 1);
+                res_p_re += - sq * xim;
+                res_p_im += + sq * xre;
+                res_q_re +=   sq * xre;
+                res_q_im +=   sq * xim;
+              }
+              /* \rho(ik-1..,ik'..) */
+              if (i1 > 0) {
+                int itx = it - stridei1;
+                double xre = xptr[2 * itx];
+                double xim = xptr[2 * itx + 1];
+                double sq = sqrt(i1);
+                res_p_re += + sq * xim;
+                res_p_im += - sq * xre;
+                res_q_re += - sq * xre;
+                res_q_im += - sq * xim;
+              }
+              /* \rho(ik..,ik'-1..) */
+              if (i1p > 0) {
+                int itx = it - stridei1p;
+                double xre = xptr[2 * itx];
+                double xim = xptr[2 * itx + 1];
+                double sq = sqrt(i1p);
+                res_p_re += - sq * xim;
+                res_p_im += + sq * xre;
+                res_q_re += - sq * xre;
+                res_q_im += - sq * xim;
+              }
+              /* Update the coefficients */
+              coeff_p_osc1 += res_p_re * xbarre + res_p_im * xbarim;
+              coeff_q_osc1 += res_q_re * xbarre + res_q_im * xbarim;
+
+              /* --- Oscillator 2 --- */
+              res_p_re = 0.0;
+              res_p_im = 0.0;
+              res_q_re = 0.0;
+              res_q_im = 0.0;
+              /* ik+1..,ik'.. term */
+              if (i2 < n2-1) {
+                int itx = it + stridei2;
+                double xre = xptr[2 * itx];
+                double xim = xptr[2 * itx + 1];
+                double sq = sqrt(i2 + 1);
+                res_p_re +=   sq * xim;
+                res_p_im += - sq * xre;
+                res_q_re +=   sq * xre;
+                res_q_im +=   sq * xim;
+              }
+              /* \rho(ik..,ik'+1..) */
+              if (i2p < n2-1) {
+                int itx = it + stridei2p;
+                double xre = xptr[2 * itx];
+                double xim = xptr[2 * itx + 1];
+                double sq = sqrt(i2p + 1);
+                res_p_re += - sq * xim;
+                res_p_im += + sq * xre;
+                res_q_re +=   sq * xre;
+                res_q_im +=   sq * xim;
+              }
+              /* \rho(ik-1..,ik'..) */
+              if (i2 > 0) {
+                int itx = it - stridei2;
+                double xre = xptr[2 * itx];
+                double xim = xptr[2 * itx + 1];
+                double sq = sqrt(i2);
+                res_p_re += + sq * xim;
+                res_p_im += - sq * xre;
+                res_q_re += - sq * xre;
+                res_q_im += - sq * xim;
+              }
+              /* \rho(ik..,ik'-1..) */
+              if (i2p > 0) {
+                int itx = it - stridei2p;
+                double xre = xptr[2 * itx];
+                double xim = xptr[2 * itx + 1];
+                double sq = sqrt(i2p);
+                res_p_re += - sq * xim;
+                res_p_im += + sq * xre;
+                res_q_re += - sq * xre;
+                res_q_im += - sq * xim;
+              }
+              /* Update the coefficients */
+              coeff_p_osc2 += res_p_re * xbarre + res_p_im * xbarim;
+              coeff_q_osc2 += res_q_re * xbarre + res_q_im * xbarim;
+
+              /* --- Oscillator 3 --- */
+              res_p_re = 0.0;
+              res_p_im = 0.0;
+              res_q_re = 0.0;
+              res_q_im = 0.0;
+              /* ik+1..,ik'.. term */
+              if (i3 < n3-1) {
+                int itx = it + stridei3;
+                double xre = xptr[2 * itx];
+                double xim = xptr[2 * itx + 1];
+                double sq = sqrt(i3 + 1);
+                res_p_re +=   sq * xim;
+                res_p_im += - sq * xre;
+                res_q_re +=   sq * xre;
+                res_q_im +=   sq * xim;
+              }
+              /* \rho(ik..,ik'+1..) */
+              if (i3p < n3-1) {
+                int itx = it + stridei3p;
+                double xre = xptr[2 * itx];
+                double xim = xptr[2 * itx + 1];
+                double sq = sqrt(i3p + 1);
+                res_p_re += - sq * xim;
+                res_p_im += + sq * xre;
+                res_q_re +=   sq * xre;
+                res_q_im +=   sq * xim;
+              }
+              /* \rho(ik-1..,ik'..) */
+              if (i3 > 0) {
+                int itx = it - stridei3;
+                double xre = xptr[2 * itx];
+                double xim = xptr[2 * itx + 1];
+                double sq = sqrt(i3);
+                res_p_re += + sq * xim;
+                res_p_im += - sq * xre;
+                res_q_re += - sq * xre;
+                res_q_im += - sq * xim;
+              }
+              /* \rho(ik..,ik'-1..) */
+              if (i3p > 0) {
+                int itx = it - stridei3p;
+                double xre = xptr[2 * itx];
+                double xim = xptr[2 * itx + 1];
+                double sq = sqrt(i3p);
+                res_p_re += - sq * xim;
+                res_p_im += + sq * xre;
+                res_q_re += - sq * xre;
+                res_q_im += - sq * xim;
+              }
+              /* Update the coefficients */
+              coeff_p_osc3 += res_p_re * xbarre + res_p_im * xbarim;
+              coeff_q_osc3 += res_q_re * xbarre + res_q_im * xbarim;
+
+              it++;
+             }
+           }
+         }
+       }  // end of all i* loops
+            }
+          }
+        }
+      } // end of all i*p loops
+    } // end of if-else for noscillators == 2 or == 4
+
     VecRestoreArrayRead(x, &xptr);
     VecRestoreArrayRead(xbar, &xbarptr);
 
@@ -658,7 +930,35 @@ void MasterEq::computedRHSdp(const double t, const Vec x, const Vec xbar, const 
       cols[iparam] = iparam + nparam0;
     }
     VecSetValues(grad, nparam1, cols, vals, ADD_VALUES);
-    VecAssemblyBegin(grad); 
+
+    if (noscillators==4) {
+      // Oscillator 2
+      for (int i=0; i<nparams_max; i++){
+        dRedp[i] = 0.0;
+        dImdp[i] = 0.0;
+      }
+      oscil_vec[2]->evalControl_diff(t, dRedp, dImdp);
+      int nparam2 = getOscillator(2)->getNParams();
+      for (int iparam=0; iparam < nparam2; iparam++) {
+        vals[iparam] = alpha * (coeff_p_osc2 * dRedp[iparam] + coeff_q_osc2 * dImdp[iparam]);
+        cols[iparam] = iparam + nparam0 + nparam1;
+      }
+      VecSetValues(grad, nparam2, cols, vals, ADD_VALUES);
+      // Oscillator 3
+      for (int i=0; i<nparams_max; i++){
+        dRedp[i] = 0.0;
+        dImdp[i] = 0.0;
+      }
+      oscil_vec[3]->evalControl_diff(t, dRedp, dImdp);
+      int nparam3 = getOscillator(3)->getNParams();
+      for (int iparam=0; iparam < nparam3; iparam++) {
+        vals[iparam] = alpha * (coeff_p_osc3 * dRedp[iparam] + coeff_q_osc3 * dImdp[iparam]);
+        cols[iparam] = iparam + nparam0 + nparam1 + nparam2;
+      }
+      VecSetValues(grad, nparam3, cols, vals, ADD_VALUES);
+    }
+
+    VecAssemblyBegin(grad);
     VecAssemblyEnd(grad);
 
   } else {  // sparse matrix solver
@@ -1715,9 +2015,312 @@ int myMatMult_matfree(Mat RHS, Vec x, Vec y){
 template <int n0, int n1, int n2, int n3>
 int myMatMultTranspose_matfree(Mat RHS, Vec x, Vec y){
 
-  /* TODO */
-  printf("ERROR: NOT IMPLEMENTED YET.");
-  exit(1);
+  /* Get the shell context */
+  MatShellCtx *shellctx;
+  MatShellGetContext(RHS, (void**) &shellctx);
+
+  /* Get access to x and y */
+  const double* xptr;
+  double* yptr;
+  VecGetArrayRead(x, &xptr);
+  VecGetArray(y, &yptr);
+
+
+  /* Evaluate coefficients */
+  double xi0  = shellctx->xi[0];
+  double xi01 = shellctx->xi[1];
+  double xi02 = shellctx->xi[2];
+  double xi03 = shellctx->xi[3];
+  double xi1  = shellctx->xi[4];
+  double xi12 = shellctx->xi[5];
+  double xi13 = shellctx->xi[6];
+  double xi2  = shellctx->xi[7];
+  double xi23 = shellctx->xi[8];
+  double xi3  = shellctx->xi[9];
+
+  double detuning_freq0 = shellctx->detuning_freq[0];
+  double detuning_freq1 = shellctx->detuning_freq[1];
+  double detuning_freq2 = shellctx->detuning_freq[2];
+  double detuning_freq3 = shellctx->detuning_freq[3];
+  double decay0 = 0.0;
+  double decay1 = 0.0;
+  double decay2 = 0.0;
+  double decay3 = 0.0;
+  double dephase0 = 0.0;
+  double dephase1 = 0.0;
+  double dephase2 = 0.0;
+  double dephase3 = 0.0;
+  if (shellctx->collapse_time[0] > 1e-14) decay0   = 1./shellctx->collapse_time[0];
+  if (shellctx->collapse_time[1] > 1e-14) dephase0 = 1./shellctx->collapse_time[1];
+  if (shellctx->collapse_time[2] > 1e-14) decay1   = 1./shellctx->collapse_time[2];
+  if (shellctx->collapse_time[3] > 1e-14) dephase1 = 1./shellctx->collapse_time[3];
+  if (shellctx->collapse_time[4] > 1e-14) decay2   = 1./shellctx->collapse_time[4];
+  if (shellctx->collapse_time[5] > 1e-14) dephase2 = 1./shellctx->collapse_time[5];
+  if (shellctx->collapse_time[6] > 1e-14) decay3   = 1./shellctx->collapse_time[6];
+  if (shellctx->collapse_time[7] > 1e-14) dephase3 = 1./shellctx->collapse_time[7];
+  double pt0 = shellctx->control_Re[0];
+  double qt0 = shellctx->control_Im[0];
+  double pt1 = shellctx->control_Re[1];
+  double qt1 = shellctx->control_Im[1];
+  double pt2 = shellctx->control_Re[2];
+  double qt2 = shellctx->control_Im[2];
+  double pt3 = shellctx->control_Re[3];
+  double qt3 = shellctx->control_Im[3];
+
+  /* compute strides for accessing x at i0+1, i0-1, i0p+1, i0p-1, i1+1, i1-1, i1p+1, i1p-1,... */
+  int stridei0  = TensorGetIndex(n0,n1,n2,n3, 1,0,0,0,0,0,0,0);
+  int stridei1  = TensorGetIndex(n0,n1,n2,n3, 0,1,0,0,0,0,0,0);
+  int stridei2  = TensorGetIndex(n0,n1,n2,n3, 0,0,1,0,0,0,0,0);
+  int stridei3  = TensorGetIndex(n0,n1,n2,n3, 0,0,0,1,0,0,0,0);
+  int stridei0p = TensorGetIndex(n0,n1,n2,n3, 0,0,0,0,1,0,0,0);
+  int stridei1p = TensorGetIndex(n0,n1,n2,n3, 0,0,0,0,0,1,0,0);
+  int stridei2p = TensorGetIndex(n0,n1,n2,n3, 0,0,0,0,0,0,1,0);
+  int stridei3p = TensorGetIndex(n0,n1,n2,n3, 0,0,0,0,0,0,0,1);
+
+  /* Iterate over indices of output vector y */
+  int it = 0;
+  for (int i0p = 0; i0p < n0; i0p++)  {
+    for (int i1p = 0; i1p < n1; i1p++)  {
+      for (int i2p = 0; i2p < n2; i2p++)  {
+        for (int i3p = 0; i3p < n3; i3p++)  {
+
+      for (int i0 = 0; i0 < n0; i0++)  {
+        for (int i1 = 0; i1 < n1; i1++)  {
+          for (int i2 = 0; i2 < n2; i2++)  {
+            for (int i3 = 0; i3 < n3; i3++)  {
+
+
+          /* --- Diagonal part ---*/
+          //Get input x values
+          double xre = xptr[2 * it];
+          double xim = xptr[2 * it + 1];
+          // Constant Hd^T part: uout = ( hd(ik) - hd(ik'))*vin
+          //                     vout = (-hd(ik) + hd(ik'))*uin
+          double hd  = Hd(xi0, xi01, xi02, xi03, xi1, xi12, xi13, xi2, xi23, xi3,
+                          detuning_freq0, detuning_freq1, detuning_freq2, detuning_freq3,
+                          i0, i1, i2, i3);
+          double hdp  = Hd(xi0, xi01, xi02, xi03, xi1, xi12, xi13, xi2, xi23, xi3,
+                           detuning_freq0, detuning_freq1, detuning_freq2, detuning_freq3,
+                           i0p, i1p, i2p, i3p);
+
+          double yre = (-hd + hdp ) * xim;
+          double yim = ( hd - hdp ) * xre;
+          // Decay l1^T, diagonal part: xout += l1diag xin
+          // Dephasing l2^T: xout += l2(ik, ikp) xin
+          double l1diag = L1diag(decay0, decay1, decay2, decay3, i0, i1, i2, i3, i0p, i1p, i2p, i3p);
+          double l2 = L2(dephase0, dephase1, dephase2, dephase3, i0, i1, i2, i3, i0p, i1p, i2p, i3p);
+          yre += (l2 + l1diag) * xre;
+          yim += (l2 + l1diag) * xim;
+
+
+          /* --- Offdiagonal part of decay L1^T */
+          // Oscillators 0
+          if (i0 > 0 && i0p > 0) {
+            double l1off = decay0 * sqrt(i0*i0p);
+            int itx = it - stridei0 - stridei0p;
+            double xre = xptr[2 * itx];
+            double xim = xptr[2 * itx + 1];
+            yre += l1off * xre;
+            yim += l1off * xim;
+          }
+          // Oscillator 1
+          if (i1 > 0 && i1p > 0) {
+            double l1off = decay1 * sqrt(i1*i1p);
+            int itx = it - stridei1 - stridei1p;
+            double xre = xptr[2 * itx];
+            double xim = xptr[2 * itx + 1];
+            yre += l1off * xre;
+            yim += l1off * xim;
+          }
+          // Oscillator 2
+          if (i2 > 0 && i2p > 0) {
+            double l1off = decay2 * sqrt(i2*i2p);
+            int itx = it - stridei2 - stridei2p;
+            double xre = xptr[2 * itx];
+            double xim = xptr[2 * itx + 1];
+            yre += l1off * xre;
+            yim += l1off * xim;
+          }
+          // Oscillator 3
+          if (i3 > 0 && i3p > 0) {
+            double l1off = decay3 * sqrt(i3*i3p);
+            int itx = it - stridei3 - stridei3p;
+            double xre = xptr[2 * itx];
+            double xim = xptr[2 * itx + 1];
+            yre += l1off * xre;
+            yim += l1off * xim;
+          }
+          /* --- Control hamiltonian --- Oscillator 0 --- */
+          /* \rho(ik+1..,ik'..) term */
+          if (i0 > 0) {
+            int itx = it - stridei0;
+            double xre = xptr[2 * itx];
+            double xim = xptr[2 * itx + 1];
+            double sq = sqrt(i0);
+            yre += sq * ( - pt0 * xim + qt0 * xre);
+            yim += sq * (   pt0 * xre + qt0 * xim);
+          }
+          /* \rho(ik..,ik'+1..) */
+          if (i0p > 0) {
+            int itx = it - stridei0p;
+            double xre = xptr[2 * itx];
+            double xim = xptr[2 * itx + 1];
+            double sq = sqrt(i0p);
+            yre += sq * (  pt0 * xim + qt0 * xre);
+            yim += sq * ( -pt0 * xre + qt0 * xim);
+          }
+          /* \rho(ik-1..,ik'..) */
+          if (i0 < n0-1) {
+            int itx = it + stridei0;
+            double xre = xptr[2 * itx];
+            double xim = xptr[2 * itx + 1];
+            double sq = sqrt(i0+1);
+            yre += sq * (- pt0 * xim - qt0 * xre);
+            yim += sq * (  pt0 * xre - qt0 * xim);
+          }
+          /* \rho(ik..,ik'-1..) */
+          if (i0p < n0-1) {
+            int itx = it + stridei0p;
+            double xre = xptr[2 * itx];
+            double xim = xptr[2 * itx + 1];
+            double sq = sqrt(i0p+1);
+            yre += sq * (+ pt0 * xim - qt0 * xre);
+            yim += sq * (- pt0 * xre - qt0 * xim);
+          }
+
+          /* --- Control hamiltonian --- Oscillator 1 --- */
+          /* \rho(ik+1..,ik'..) term */
+          if (i1 > 0) {
+            int itx = it - stridei1;
+            double xre = xptr[2 * itx];
+            double xim = xptr[2 * itx + 1];
+            double sq = sqrt(i1);
+            yre += sq * ( - pt1 * xim + qt1 * xre);
+            yim += sq * (   pt1 * xre + qt1 * xim);
+          }
+          /* \rho(ik..,ik'+1..) */
+          if (i1p > 0) {
+            int itx = it - stridei1p;
+            double xre = xptr[2 * itx];
+            double xim = xptr[2 * itx + 1];
+            double sq = sqrt(i1p);
+            yre += sq * (  pt1 * xim + qt1 * xre);
+            yim += sq * ( -pt1 * xre + qt1 * xim);
+          }
+          /* \rho(ik-1..,ik'..) */
+          if (i1 < n1-1) {
+            int itx = it + stridei1;
+            double xre = xptr[2 * itx];
+            double xim = xptr[2 * itx + 1];
+            double sq = sqrt(i1+1);
+            yre += sq * (- pt1 * xim - qt1 * xre);
+            yim += sq * (  pt1 * xre - qt1 * xim);
+          }
+          /* \rho(ik..,ik'-1..) */
+          if (i1p < n1-1) {
+            /* Get output index in vectorized, colocated y */
+            int itx = it + stridei1p;
+            double xre = xptr[2 * itx];
+            double xim = xptr[2 * itx + 1];
+            double sq = sqrt(i1p+1);
+            yre += sq * (  pt1 * xim - qt1 * xre);
+            yim += sq * (- pt1 * xre - qt1 * xim);
+          }
+          /* --- Control hamiltonian --- Oscillator 2 --- */
+          /* \rho(ik+1..,ik'..) term */
+          if (i2 > 0) {
+            int itx = it - stridei2;
+            double xre = xptr[2 * itx];
+            double xim = xptr[2 * itx + 1];
+            double sq = sqrt(i2);
+            yre += sq * ( - pt2 * xim + qt2 * xre);
+            yim += sq * (   pt2 * xre + qt2 * xim);
+          }
+          /* \rho(ik..,ik'+1..) */
+          if (i2p > 0) {
+            int itx = it - stridei2p;
+            double xre = xptr[2 * itx];
+            double xim = xptr[2 * itx + 1];
+            double sq = sqrt(i2p);
+            yre += sq * (  pt2 * xim + qt2 * xre);
+            yim += sq * ( -pt2 * xre + qt2 * xim);
+          }
+          /* \rho(ik-1..,ik'..) */
+          if (i2 < n2-1) {
+            int itx = it + stridei2;
+            double xre = xptr[2 * itx];
+            double xim = xptr[2 * itx + 1];
+            double sq = sqrt(i2+1);
+            yre += sq * (- pt2 * xim - qt2 * xre);
+            yim += sq * (  pt2 * xre - qt2 * xim);
+          }
+          /* \rho(ik..,ik'-1..) */
+          if (i2p < n2-1) {
+            /* Get output index in vectorized, colocated y */
+            int itx = it + stridei2p;
+            double xre = xptr[2 * itx];
+            double xim = xptr[2 * itx + 1];
+            double sq = sqrt(i2p+1);
+            yre += sq * (  pt2 * xim - qt2 * xre);
+            yim += sq * (- pt2 * xre - qt2 * xim);
+          }
+          /* --- Control hamiltonian --- Oscillator 3 --- */
+          /* \rho(ik+1..,ik'..) term */
+          if (i3 > 0) {
+            int itx = it - stridei3;
+            double xre = xptr[2 * itx];
+            double xim = xptr[2 * itx + 1];
+            double sq = sqrt(i3);
+            yre += sq * ( - pt3 * xim + qt3 * xre);
+            yim += sq * (   pt3 * xre + qt3 * xim);
+          }
+          /* \rho(ik..,ik'+1..) */
+          if (i3p > 0) {
+            int itx = it - stridei3p;
+            double xre = xptr[2 * itx];
+            double xim = xptr[2 * itx + 1];
+            double sq = sqrt(i3p);
+            yre += sq * (  pt3 * xim + qt3 * xre);
+            yim += sq * ( -pt3 * xre + qt3 * xim);
+          }
+          /* \rho(ik-1..,ik'..) */
+          if (i3 < n3-1) {
+            int itx = it + stridei3;
+            double xre = xptr[2 * itx];
+            double xim = xptr[2 * itx + 1];
+            double sq = sqrt(i3+1);
+            yre += sq * (- pt3 * xim - qt3 * xre);
+            yim += sq * (  pt3 * xre - qt3 * xim);
+          }
+          /* \rho(ik..,ik'-1..) */
+          if (i3p < n3-1) {
+            /* Get output index in vectorized, colocated y */
+            int itx = it + stridei3p;
+            double xre = xptr[2 * itx];
+            double xim = xptr[2 * itx + 1];
+            double sq = sqrt(i3p+1);
+            yre += sq * (  pt3 * xim - qt3 * xre);
+            yim += sq * (- pt3 * xre - qt3 * xim);
+          }
+
+          /* Update */
+          yptr[2*it]   = yre;
+          yptr[2*it+1] = yim;
+          it++;
+
+         }
+       }
+     }
+   } // end of all i* loops
+        }
+      }
+    }
+  }  // end of all i*p loops
+
+  /* Restore x and y */
+  VecRestoreArrayRead(x, &xptr);
+  VecRestoreArray(y, &yptr);
+
   return 0;
 }
 
