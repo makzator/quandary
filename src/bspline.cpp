@@ -88,5 +88,5 @@ double ControlBasis::basisfunction(int id, double t){
     else if  (-1./6. <= tau && tau <  1./6.) val = 3./4. - 9. * pow(tau,2);
     else if  ( 1./6. <= tau && tau <  1./2.) val = 9./8. - 9./2. * tau + 9./2. * pow(tau,2);
 
-    return val;
+    return 1.0;
 }

@@ -269,6 +269,17 @@ void ImplMidpoint::evolveFWD(const double tstart,const  double tstop, Vec x) {
 
   /* Compute rhs = A x */
   MatMult(A, x, rhs);
+  PetscRandom rctx;
+  PetscRandomCreate(PETSC_COMM_WORLD,&rctx);
+  PetscRandomSetFromOptions(rctx);
+  VecSetRandom(x,rctx);
+  PetscRandomDestroy(&rctx);
+  VecAssemblyBegin(x);
+  VecAssemblyEnd(x);
+
+//  VecSet(x, 1);
+  printf("\n rhs in evolveFWD:\n");
+  VecView(rhs, PETSC_VIEWER_STDOUT_WORLD);
 
   /* Solve for the stage variable (I-dt/2 A) k1 = Ax */
   switch (linsolve_type) {
