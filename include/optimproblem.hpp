@@ -54,6 +54,10 @@ class OptimProblem {
   std::vector<double> initguess_amplitudes; /* Initial amplitudes of controles, or NULL */
   double* mygrad;  /* Auxiliary */
   
+  //LMS
+  std::vector<double> V_re_rows; /* real part of gate as dim_gate*dim_gate long list (rows concatenated) */
+  std::vector<double> V_im_rows; /* imag part of gate as dim_gate*dim_gate long list (rows concatenated) */
+  
   public: 
     Output* output;                 /* Store a reference to the output */
     TimeStepper* timestepper;       /* Store a reference to the time-stepping scheme */
