@@ -447,3 +447,124 @@ CQNOT::CQNOT(std::vector<int> nlevels_, std::vector<int> nessential_, double tim
 
 
 CQNOT::~CQNOT(){}
+
+
+//LMS
+
+SQRTCNOT::SQRTCNOT(std::vector<int> nlevels, std::vector<int> nessential, double time, std::vector<double> gate_rot_freq) : Gate(nlevels, nessential,time, gate_rot_freq) {
+
+  assert(dim_ess == 4);
+
+  /* Fill A = Re(V) and B = Im(V), V = A + iB */
+  /* A =  1 0 0 0   B = 0 0 0 0
+   *      0 1 0 0       0 0 0 0
+   *      0 0 1/2 1/2   0 0 1/2 -1/2
+   *      0 0 1/2 1/2   0 0 -1/2 1/2
+   */  if (mpirank_petsc == 0) {
+    MatSetValue(V_re, 0, 0, 1.0, INSERT_VALUES);
+    MatSetValue(V_re, 1, 1, 1.0, INSERT_VALUES);
+    MatSetValue(V_re, 2, 2, 0.5, INSERT_VALUES);
+    MatSetValue(V_re, 3, 3, 0.5, INSERT_VALUES);
+    MatSetValue(V_re, 2, 3, 0.5, INSERT_VALUES);
+    MatSetValue(V_re, 3, 2, 0.5, INSERT_VALUES);
+    MatSetValue(V_im, 2, 2, 0.5, INSERT_VALUES);
+    MatSetValue(V_im, 3, 3, 0.5, INSERT_VALUES);
+    MatSetValue(V_im, 2, 3, -0.5, INSERT_VALUES);
+    MatSetValue(V_im, 3, 2, -0.5, INSERT_VALUES);
+    MatAssemblyBegin(V_im, MAT_FINAL_ASSEMBLY);
+    MatAssemblyEnd(V_im, MAT_FINAL_ASSEMBLY);
+    MatAssemblyBegin(V_re, MAT_FINAL_ASSEMBLY);
+    MatAssemblyEnd(V_re, MAT_FINAL_ASSEMBLY);
+  }
+
+  /* assemble vectorized rotated target gate \bar VP \kron VP from V=V_re + i V_im */
+  assembleGate();
+}
+
+SQRTCNOT::~SQRTCNOT(){}
+
+
+EncodingGate::EncodingGate(std::vector<int> nlevels, std::vector<int> nessential, double time, std::vector<double> gate_rot_freq) : Gate(nlevels, nessential,time, gate_rot_freq) {
+
+  assert(dim_ess == 8);
+
+  /* U = 1 0 0 0 0 0 0 0
+         0 1 0 0 0 0 0 0 
+         0 0 0 0 1 0 0 0
+         0 0 0 0 0 1 0 0
+         0 0 1 0 0 0 0 0
+         0 0 0 1 0 0 0 0
+         0 0 0 0 0 0 1 0
+         0 0 0 0 0 0 0 1
+  */
+  if (mpirank_petsc == 0) {
+    MatSetValue(V_re, 0, 0, 1.0, INSERT_VALUES);
+    MatSetValue(V_re, 1, 1, 1.0, INSERT_VALUES);
+    MatSetValue(V_re, 2, 4, 1.0, INSERT_VALUES);
+    MatSetValue(V_re, 3, 5, 1.0, INSERT_VALUES);
+    MatSetValue(V_re, 4, 2, 1.0, INSERT_VALUES);
+    MatSetValue(V_re, 5, 3, 1.0, INSERT_VALUES);
+    MatSetValue(V_re, 6, 6, 1.0, INSERT_VALUES);
+    MatSetValue(V_re, 7, 7, 1.0, INSERT_VALUES);   
+    MatAssemblyBegin(V_re, MAT_FINAL_ASSEMBLY);
+    MatAssemblyEnd(V_re, MAT_FINAL_ASSEMBLY);
+  }
+
+  /* assemble vectorized rotated target gate \bar VP \kron VP from V=V_re + i V_im */
+  assembleGate();
+}
+
+EncodingGate::~EncodingGate(){}
+
+
+X23Gate::X23Gate(std::vector<int> nlevels, std::vector<int> nessential, double time, std::vector<double> gate_rot_freq) : Gate(nlevels, nessential,time, gate_rot_freq) {
+
+  assert(dim_ess == 4);
+
+  /* U = 1 0 0 0
+         0 1 0 0
+         0 0 0 1
+         0 0 1 0
+  */
+  if (mpirank_petsc == 0) {
+    MatSetValue(V_re, 0, 0, 1.0, INSERT_VALUES);
+    MatSetValue(V_re, 1, 1, 1.0, INSERT_VALUES);
+    MatSetValue(V_re, 2, 3, 1.0, INSERT_VALUES);
+    MatSetValue(V_re, 3, 2, 1.0, INSERT_VALUES);  
+    MatAssemblyBegin(V_re, MAT_FINAL_ASSEMBLY);
+    MatAssemblyEnd(V_re, MAT_FINAL_ASSEMBLY);
+  }
+
+  /* assemble vectorized rotated target gate \bar VP \kron VP from V=V_re + i V_im */
+  assembleGate();
+}
+
+X23Gate::~X23Gate(){}
+
+
+ArbitraryGate::ArbitraryGate(std::vector<int> nlevels, std::vector<int> nessential, double time, std::vector<double> gate_rot_freq, std::vector<double> V_re_rows, std::vector<double> V_im_rows) : Gate(nlevels, nessential,time, gate_rot_freq) {
+
+  assert(V_re_rows.size() == V_im_rows.size());
+  int dim_gate = int(sqrt(V_re_rows.size()));
+  assert(dim_gate*dim_gate == V_re_rows.size());
+  assert(dim_ess == dim_gate);
+
+  if (mpirank_petsc == 0) {
+    for (int i=0; i<dim_gate; i++) {
+      for (int j=0; j<dim_gate; j++) {
+        MatSetValue(V_re, i, j, V_re_rows[i*dim_gate+j], INSERT_VALUES);
+        MatSetValue(V_im, i, j, V_im_rows[i*dim_gate+j], INSERT_VALUES);
+      }
+    }
+
+    MatAssemblyBegin(V_re, MAT_FINAL_ASSEMBLY);
+    MatAssemblyEnd(V_re, MAT_FINAL_ASSEMBLY);
+    MatAssemblyBegin(V_im, MAT_FINAL_ASSEMBLY);
+    MatAssemblyEnd(V_im, MAT_FINAL_ASSEMBLY);
+  }
+
+  /* assemble vectorized rotated target gate \bar VP \kron VP from V=V_re + i V_im */
+  assembleGate();
+}
+
+ArbitraryGate::~ArbitraryGate(){}
