@@ -58,6 +58,10 @@ OptimProblem::OptimProblem(MapParam config, TimeStepper* timestepper_, MPI_Comm 
       }
   }
 
+  //LMS: Read arbitrary gate
+  config.GetVecDoubleParam("gate_real_rows", V_re_rows, 0.0); 
+  config.GetVecDoubleParam("gate_imag_rows", V_im_rows, 0.0);
+
   /* Store the optimization target */
   std::vector<std::string> target_str;
   Gate* targetgate=NULL;
@@ -82,6 +86,13 @@ OptimProblem::OptimProblem(MapParam config, TimeStepper* timestepper_, MPI_Comm 
     else if (target_str[1].compare("swap") == 0) targetgate = new SWAP(timestepper->mastereq->nlevels, timestepper->mastereq->nessential, timestepper->total_time, gate_rot_freq); 
     else if (target_str[1].compare("swap0q") == 0) targetgate = new SWAP_0Q(timestepper->mastereq->nlevels, timestepper->mastereq->nessential, timestepper->total_time, gate_rot_freq); 
     else if (target_str[1].compare("cqnot") == 0) targetgate = new CQNOT(timestepper->mastereq->nlevels, timestepper->mastereq->nessential, timestepper->total_time, gate_rot_freq); 
+    
+    // LMS
+    else if (target_str[1].compare("encoding") == 0) targetgate = new EncodingGate(timestepper->mastereq->nlevels, timestepper->mastereq->nessential, timestepper->total_time, gate_rot_freq); 
+    else if (target_str[1].compare("x23") == 0) targetgate = new X23Gate(timestepper->mastereq->nlevels, timestepper->mastereq->nessential, timestepper->total_time, gate_rot_freq); 
+    else if (target_str[1].compare("sqrtcnot") == 0) targetgate = new SQRTCNOT(timestepper->mastereq->nlevels, timestepper->mastereq->nessential, timestepper->total_time, gate_rot_freq); 
+    else if (target_str[1].compare("arbitrary") == 0) targetgate = new ArbitraryGate(timestepper->mastereq->nlevels, timestepper->mastereq->nessential, timestepper->total_time, gate_rot_freq, V_re_rows, V_im_rows); 
+
     else {
       printf("\n\n ERROR: Unnown gate type: %s.\n", target_str[1].c_str());
       printf(" Available gates are 'none', 'xgate', 'ygate', 'zgate', 'hadamard', 'cnot', 'swap', 'swap0q', 'cqnot'.\n");
