@@ -1,6 +1,6 @@
 # Set location of PETSC
-#PETSC_DIR=/path/to/petsc
-#PETSC_ARCH=arch-linux-c-debug
+PETSC_DIR=/local/lmseifert/Research/petsc
+PETSC_ARCH=arch-linux-c-opt
 
 # Choose to link with XBraid and set the location
 WITH_XBRAID = false
