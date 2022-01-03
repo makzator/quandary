@@ -185,8 +185,6 @@ def read_config(filename):
                break
 
             # Put all STRING option here
-
-            # LMS: I added the last two cases for arbitrary gates
             if case("nlevels") or \
                case("nessential") or \
                case("selfkerr") or \
@@ -223,9 +221,7 @@ def read_config(filename):
                case("runtype") or \
                case("usematfree") or \
                case("linearsolver_type") or \
-               case("apply_pipulse") or \
-               case("gate_real_rows") or \
-               case("gate_imag_rows") :
+               case("apply_pipulse") :
                data_dict[this_param] = this_value
                break
 
