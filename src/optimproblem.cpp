@@ -150,6 +150,15 @@ OptimProblem::OptimProblem(MapParam config, TimeStepper* timestepper_, MPI_Comm 
       obj_weights.push_back(val);
   }
   assert(obj_weights.size() >= ninit);
+  double sendbuf[obj_weights.size()];
+  double recvbuf[obj_weights.size()];
+  for (int i = 0; i < obj_weights.size(); i++) sendbuf[i] = obj_weights[i];
+  // Distribute over mpi_init processes 
+  int nscatter = ninit_local;
+  MPI_Scatter(sendbuf, nscatter, MPI_DOUBLE, recvbuf, nscatter,  MPI_DOUBLE, 0, comm_init);
+  for (int i = 0; i < nscatter; i++) obj_weights[i] = recvbuf[i];
+  for (int i=nscatter; i < obj_weights.size(); i++) obj_weights[i] = 0.0;
+
 
   /* Pass information on objective function to the time stepper needed for penalty objective function */
   gamma_penalty = config.GetDoubleParam("optim_penalty", 1e-4);
@@ -396,10 +405,12 @@ double OptimProblem::evalF(const Vec x) {
     double obj_iinit = optim_target->evalJ(finalstate);
     obj_cost +=  obj_weights[iinit] * obj_iinit;
     obj_cost_max = std::max(obj_cost_max, obj_iinit);
-    // printf("%d, %d: iinit objective: %f * %1.14e\n", mpirank_world, mpirank_init, obj_weights[iinit], obj_iinit);
 
     /* Add to final-time fidelity */
-    fidelity += optim_target->evalFidelity(finalstate);
+    double fidelity_iinit = optim_target->evalFidelity(finalstate);
+    fidelity += fidelity_iinit;
+
+    // printf("%d, %d: iinit objective: %f * %1.14e, Fid=%1.14e\n", mpirank_world, mpirank_init, obj_weights[iinit], obj_iinit, fidelity_iinit);
   }
 
 #ifdef WITH_BRAID
@@ -626,6 +637,20 @@ void OptimProblem::getStartingPoint(Vec xinit){
     }
     delete [] vecread;
   }
+
+  /* for the first and last two splines, overwrite the parameters with zero to ensure that control at t=0 and t=T is zero. */
+  PetscInt col = 0.0;
+  for (int iosc = 0; iosc < timestepper->mastereq->getNOscillators(); iosc++){
+    int ncarrier = timestepper->mastereq->getOscillator(iosc)->getNCarrierwaves();
+    PetscInt ibegin = 2*2*ncarrier;
+    PetscInt iend = (timestepper->mastereq->getOscillator(iosc)->getNSplines()-2)*2*ncarrier;
+
+    for (int i = 0; i < timestepper->mastereq->getOscillator(iosc)->getNParams(); i++) {
+      if (i < ibegin || i >= iend) VecSetValue(xinit, col, 0.0, INSERT_VALUES);
+      col++;
+    }
+  }
+
 
   /* Assemble initial guess */
   VecAssemblyBegin(xinit);
