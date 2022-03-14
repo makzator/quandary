@@ -130,7 +130,7 @@ int MapParam::GetIntParam(string key, int default_val) const
   return val;
 }
 
-string MapParam::GetStrParam(string key, string default_val, bool exportme) const
+string MapParam::GetStrParam(string key, string default_val) const
 {
   map<string, string>::const_iterator it_value = this->find(key);
   string val;
@@ -143,7 +143,7 @@ string MapParam::GetStrParam(string key, string default_val, bool exportme) cons
   else
     val = it_value->second;
 
-  if (exportme) export_param(mpi_rank, *log, key, val);
+  export_param(mpi_rank, *log, key, val);
   return val;
 }
 
