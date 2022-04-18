@@ -129,24 +129,30 @@ class CQNOT: public Gate {
 // LMS
 class SQRTCNOT: public Gate {
     public:
-      SQRTCNOT(std::vector<int> nlevels_, std::vector<int> nessential_, double time, std::vector<double> rotation_frequencies_);
+      SQRTCNOT(std::vector<int> nlevels_, std::vector<int> nessential_, double time, std::vector<double> rotation_frequencies_, LindbladType lindbladtype_);
       ~SQRTCNOT();
 };
 
 class EncodingGate: public Gate {
     public:
-      EncodingGate(std::vector<int> nlevels_, std::vector<int> nessential_, double time, std::vector<double> rotation_frequencies_);
+      EncodingGate(std::vector<int> nlevels_, std::vector<int> nessential_, double time, std::vector<double> rotation_frequencies_, LindbladType lindbladtype_);
       ~EncodingGate();
 };
 
 class X23Gate: public Gate {
     public:
-      X23Gate(std::vector<int> nlevels_, std::vector<int> nessential_, double time, std::vector<double> rotation_frequencies_);
+      X23Gate(std::vector<int> nlevels_, std::vector<int> nessential_, double time, std::vector<double> rotation_frequencies_, LindbladType lindbladtype_);
       ~X23Gate();
 };
 
 class ArbitraryGate: public Gate {
     public:
-      ArbitraryGate(std::vector<int> nlevels_, std::vector<int> nessential_, double time, std::vector<double> rotation_frequencies_, std::vector<double> V_re_rows, std::vector<double> V_im_rows);
+      ArbitraryGate(std::vector<int> nlevels_, std::vector<int> nessential_, double time, std::vector<double> rotation_frequencies_, LindbladType lindbladtype_, std::vector<double> V_re_rows, std::vector<double> V_im_rows);
       ~ArbitraryGate();
+};
+
+class SGate : public Gate {
+  public:
+    SGate(std::vector<int> nlevels_, std::vector<int> nessential_, double time, std::vector<double> rotation_frequencies_, LindbladType lindbladtype_);
+    ~SGate();
 };

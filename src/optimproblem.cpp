@@ -97,10 +97,11 @@ OptimProblem::OptimProblem(MapParam config, TimeStepper* timestepper_, MPI_Comm 
     else if (target_str[1].compare("cqnot") == 0) targetgate = new CQNOT(timestepper->mastereq->nlevels, timestepper->mastereq->nessential, timestepper->total_time, gate_rot_freq, timestepper->mastereq->lindbladtype); 
     
     // LMS
-    else if (target_str[1].compare("encoding") == 0) targetgate = new EncodingGate(timestepper->mastereq->nlevels, timestepper->mastereq->nessential, timestepper->total_time, gate_rot_freq); 
-    else if (target_str[1].compare("x23") == 0) targetgate = new X23Gate(timestepper->mastereq->nlevels, timestepper->mastereq->nessential, timestepper->total_time, gate_rot_freq); 
-    else if (target_str[1].compare("sqrtcnot") == 0) targetgate = new SQRTCNOT(timestepper->mastereq->nlevels, timestepper->mastereq->nessential, timestepper->total_time, gate_rot_freq); 
-    else if (target_str[1].compare("arbitrary") == 0) targetgate = new ArbitraryGate(timestepper->mastereq->nlevels, timestepper->mastereq->nessential, timestepper->total_time, gate_rot_freq, V_re_rows, V_im_rows); 
+    else if (target_str[1].compare("encoding") == 0) targetgate = new EncodingGate(timestepper->mastereq->nlevels, timestepper->mastereq->nessential, timestepper->total_time, gate_rot_freq, timestepper->mastereq->lindbladtype); 
+    else if (target_str[1].compare("x23") == 0) targetgate = new X23Gate(timestepper->mastereq->nlevels, timestepper->mastereq->nessential, timestepper->total_time, gate_rot_freq, timestepper->mastereq->lindbladtype); 
+    else if (target_str[1].compare("sqrtcnot") == 0) targetgate = new SQRTCNOT(timestepper->mastereq->nlevels, timestepper->mastereq->nessential, timestepper->total_time, gate_rot_freq, timestepper->mastereq->lindbladtype); 
+    else if (target_str[1].compare("arbitrary") == 0) targetgate = new ArbitraryGate(timestepper->mastereq->nlevels, timestepper->mastereq->nessential, timestepper->total_time, gate_rot_freq, timestepper->mastereq->lindbladtype, V_re_rows, V_im_rows); 
+    else if (target_str[1].compare("sgate") == 0) targetgate = new SGate(timestepper->mastereq->nlevels, timestepper->mastereq->nessential, timestepper->total_time, gate_rot_freq, timestepper->mastereq->lindbladtype); 
     
     else {
       printf("\n\n ERROR: Unnown gate type: %s.\n", target_str[1].c_str());

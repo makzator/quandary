@@ -295,6 +295,9 @@ XGate::XGate(std::vector<int> nlevels, std::vector<int> nessential, double time,
 
   /* Assemble vectorized rotated target gate \bar VP \kron VP from  V = V_re + i V_im */
   assembleGate();
+
+  MatView(V_re, NULL);
+  MatView(V_im, NULL);
 }
 
 XGate::~XGate() {}
@@ -314,6 +317,9 @@ YGate::YGate(std::vector<int> nlevels, std::vector<int> nessential, double time,
 
   /* Assemble vectorized rotated arget gate \bar VP \kron VP from  V = V_re + i V_im*/
   assembleGate();
+
+  MatView(V_re, NULL);
+  MatView(V_im, NULL);
 }
 YGate::~YGate() {}
 
@@ -332,6 +338,9 @@ ZGate::ZGate(std::vector<int> nlevels, std::vector<int> nessential, double time,
 
   /* Assemble vectorized rotated target gate \bar VP \kron VP from  V = V_re + i V_im*/
   assembleGate();
+
+  MatView(V_re, NULL);
+  MatView(V_im, NULL);
 }
 
 ZGate::~ZGate() {}
@@ -476,7 +485,7 @@ CQNOT::~CQNOT(){}
 
 //LMS
 
-SQRTCNOT::SQRTCNOT(std::vector<int> nlevels, std::vector<int> nessential, double time, std::vector<double> gate_rot_freq) : Gate(nlevels, nessential,time, gate_rot_freq) {
+SQRTCNOT::SQRTCNOT(std::vector<int> nlevels_, std::vector<int> nessential_, double time_, std::vector<double> gate_rot_freq_, LindbladType lindbladtype_) : Gate(nlevels_, nessential_, time_, gate_rot_freq_, lindbladtype_) {
 
   assert(dim_ess == 4);
 
@@ -509,7 +518,7 @@ SQRTCNOT::SQRTCNOT(std::vector<int> nlevels, std::vector<int> nessential, double
 SQRTCNOT::~SQRTCNOT(){}
 
 
-EncodingGate::EncodingGate(std::vector<int> nlevels, std::vector<int> nessential, double time, std::vector<double> gate_rot_freq) : Gate(nlevels, nessential,time, gate_rot_freq) {
+EncodingGate::EncodingGate(std::vector<int> nlevels_, std::vector<int> nessential_, double time_, std::vector<double> gate_rot_freq_, LindbladType lindbladtype_) : Gate(nlevels_, nessential_, time_, gate_rot_freq_, lindbladtype_) {
 
   assert(dim_ess == 8);
 
@@ -542,7 +551,7 @@ EncodingGate::EncodingGate(std::vector<int> nlevels, std::vector<int> nessential
 EncodingGate::~EncodingGate(){}
 
 
-X23Gate::X23Gate(std::vector<int> nlevels, std::vector<int> nessential, double time, std::vector<double> gate_rot_freq) : Gate(nlevels, nessential,time, gate_rot_freq) {
+X23Gate::X23Gate(std::vector<int> nlevels_, std::vector<int> nessential_, double time_, std::vector<double> gate_rot_freq_, LindbladType lindbladtype_) : Gate(nlevels_, nessential_, time_, gate_rot_freq_, lindbladtype_) {
 
   assert(dim_ess == 4);
 
@@ -567,7 +576,7 @@ X23Gate::X23Gate(std::vector<int> nlevels, std::vector<int> nessential, double t
 X23Gate::~X23Gate(){}
 
 
-ArbitraryGate::ArbitraryGate(std::vector<int> nlevels, std::vector<int> nessential, double time, std::vector<double> gate_rot_freq, std::vector<double> V_re_rows, std::vector<double> V_im_rows) : Gate(nlevels, nessential,time, gate_rot_freq) {
+ArbitraryGate::ArbitraryGate(std::vector<int> nlevels_, std::vector<int> nessential_, double time_, std::vector<double> gate_rot_freq_, LindbladType lindbladtype_, std::vector<double> V_re_rows, std::vector<double> V_im_rows) : Gate(nlevels_, nessential_, time_, gate_rot_freq_, lindbladtype_) {
 
   assert(V_re_rows.size() == V_im_rows.size());
   int dim_gate = int(sqrt(V_re_rows.size()));
@@ -583,13 +592,36 @@ ArbitraryGate::ArbitraryGate(std::vector<int> nlevels, std::vector<int> nessenti
     }
 
     MatAssemblyBegin(V_re, MAT_FINAL_ASSEMBLY);
-    MatAssemblyEnd(V_re, MAT_FINAL_ASSEMBLY);
     MatAssemblyBegin(V_im, MAT_FINAL_ASSEMBLY);
+    MatAssemblyEnd(V_re, MAT_FINAL_ASSEMBLY);
     MatAssemblyEnd(V_im, MAT_FINAL_ASSEMBLY);
   }
 
   /* assemble vectorized rotated target gate \bar VP \kron VP from V=V_re + i V_im */
   assembleGate();
+
+  MatView(V_re, NULL);
+  MatView(V_im, NULL);
 }
 
 ArbitraryGate::~ArbitraryGate(){}
+
+
+SGate::SGate(std::vector<int> nlevels, std::vector<int> nessential, double time, std::vector<double> gate_rot_freq, LindbladType lindbladtype_) : Gate(nlevels, nessential, time, gate_rot_freq, lindbladtype_) {
+
+  assert(dim_ess == 2);
+  
+  MatSetValue(V_re, 0, 0, 1.0, INSERT_VALUES);
+  MatSetValue(V_im, 1, 1, 1.0, INSERT_VALUES);
+  MatAssemblyBegin(V_re, MAT_FINAL_ASSEMBLY);
+  MatAssemblyBegin(V_im, MAT_FINAL_ASSEMBLY);
+  MatAssemblyEnd(V_re, MAT_FINAL_ASSEMBLY);
+  MatAssemblyEnd(V_im, MAT_FINAL_ASSEMBLY);
+
+  /* Assemble vectorized rotated arget gate \bar VP \kron VP from  V = V_re + i V_im*/
+  assembleGate();
+
+  MatView(V_re, NULL);
+  MatView(V_im, NULL);
+}
+SGate::~SGate() {}
