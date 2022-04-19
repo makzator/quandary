@@ -522,7 +522,7 @@ bool isUnitary(const Mat V_re, const Mat V_im){
   MatNorm(C, NORM_FROBENIUS, &norm);
   if (norm > 1e-14) {
     printf("ERROR: V_re^TVre+Vim^TVim is not identity! %f\n", norm);
-    // MatView(C, NULL);
+    MatView(C, NULL);
     isunitary = false;
   } 
   MatDestroy(&C);
@@ -535,7 +535,7 @@ bool isUnitary(const Mat V_re, const Mat V_im){
   MatNorm(C, NORM_FROBENIUS, &norm);
   if (norm > 1e-14) {
     printf("ERROR: Vre^TVim - Vim^TVre is not zero! %f\n", norm);
-    // MatView(C,NULL);
+    MatView(C,NULL);
     isunitary = false;
   }
   MatDestroy(&C);

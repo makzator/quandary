@@ -236,7 +236,7 @@ void Gate::assembleGate(){
           // for all nonzeros in this row, place Ve_{i,j} at G[row_f,mapEssToFull(coll_e)]
           int col_f = mapEssToFull(col_e, nlevels, nessential);
           if (fabs(vre_ij) > 1e-14) MatSetValue(VxV_re, row_f, col_f, vre_ij, INSERT_VALUES);
-          if (fabs(vim_ij) > 1e-14) MatSetValue(VxV_re, row_f, col_f, vim_ij, INSERT_VALUES);
+          if (fabs(vim_ij) > 1e-14) MatSetValue(VxV_im, row_f, col_f, vim_ij, INSERT_VALUES);
         }
       }
     } else { // place 1.0 at diagonal
@@ -597,9 +597,13 @@ ArbitraryGate::ArbitraryGate(std::vector<int> nlevels_, std::vector<int> nessent
     MatAssemblyEnd(V_im, MAT_FINAL_ASSEMBLY);
   }
 
+  MatView(V_re, NULL);
+  MatView(V_im, NULL);
+
   /* assemble vectorized rotated target gate \bar VP \kron VP from V=V_re + i V_im */
   assembleGate();
 
+  printf("Gates after rotation:\n");
   MatView(V_re, NULL);
   MatView(V_im, NULL);
 }
